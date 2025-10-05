@@ -25,7 +25,7 @@ new BABYLON.HemisphericLight("hemi", new BABYLON.Vector3(0,1,0), scene);
 // -------- Planetas ----------
 const BASE = "/static/models/";
 const PLANETS = [
-   { name: "Sun", file: "Sun.glb"},
+  { name: "Sun", file: "Sun.glb" },
   { name: "Mercury", file: "Mercury.glb" },
   { name: "Venus",   file: "Venus.glb"   },
   { name: "Earth",   file: "Earth.glb"   },
@@ -47,8 +47,6 @@ const D_MS = 600;
 const easeInOut = t => (t<0.5 ? 4*t*t*t : 1 - Math.pow(-2*t+2,3)/2);
 
 // -------- Normalización de tamaño --------
-// Queremos que TODOS los planetas se vean con el MISMO tamaño en pantalla.
-// Definimos un "diámetro objetivo" en unidades de mundo.
 const TARGET_DIAMETER = 4.0; // súbelo para verlos más grandes, bájalo para más pequeños
 
 function centerAndNormalize(node) {
@@ -67,7 +65,6 @@ function centerAndNormalize(node) {
 
 // Distancia para “sacar” el planeta fuera del viewport verticalmente
 function offscreenY() {
-  // Con radio fijo, esta proporción funciona bien para sacar el objeto del campo visual
   return CAMERA_RADIUS * 1.7; // ajusta si quieres deslizamientos más largos/cortos
 }
 
@@ -89,7 +86,7 @@ async function createHolderFor(index) {
   return h;
 }
 
-// Init: cargamos el primer planeta. Ya responde al scroll desde el inicio.
+// Init
 async function init() {
   try {
     holder = await createHolderFor(idx);
@@ -157,17 +154,28 @@ async function slideTo(nextIndex, direction = 1) {
   }
 }
 
-// Scroll con umbral (desde el inicio ya funciona)
+// --------- DELIMITADOR DE SCROLL ---------
+// No se acumula scroll cuando ya estamos en los extremos.
 let acc = 0, last = 0;
 const THRESHOLD = 200;
+const MAX_INDEX = PLANETS.length - 1;
+// Para evitar “picos” de trackpad (delta enormes que saltan el umbral)
+const DELTA_CAP = 140; // ajusta si tu touchpad es muy “nervioso”
 
 window.addEventListener("wheel", async (e) => {
-  e.preventDefault?.(); // evitamos que scrollee la página
+  e.preventDefault?.(); // evita que scrollee el body
 
-  acc += e.deltaY;
+  // Si estamos en el límite y la dirección va “hacia afuera”, NO contamos el scroll
+  if ((idx === 0 && e.deltaY < 0) || (idx === MAX_INDEX && e.deltaY > 0)) {
+    return; // ← delimitador: no acumula, no dispara transición
+  }
+
+  // Suaviza picos de deltaY
+  const dy = Math.max(-DELTA_CAP, Math.min(DELTA_CAP, e.deltaY));
+  acc += dy;
 
   // siguiente
-  if (acc - last > THRESHOLD && idx < PLANETS.length - 1) {
+  if (acc - last > THRESHOLD && idx < MAX_INDEX) {
     last = acc;
     await slideTo(idx + 1, 1);
   }
@@ -180,7 +188,7 @@ window.addEventListener("wheel", async (e) => {
 
 // Render
 engine.runRenderLoop(() => {
-  if (holder) holder.rotation.y += 0.002; // rotación sutil sin cambiar tamaño
+  if (holder) holder.rotation.y += 0.002; // rotación sutil
   scene.render();
 });
 window.addEventListener("resize", () => engine.resize());
