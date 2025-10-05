@@ -18,5 +18,34 @@ def view_mercury():
 def view_venus():
     return render_template('info-earth.html')
 
+@app.route('/view/Jupiter')
+def view_jupiter():
+    return render_template('info-jupiter.html')
+
+@app.route('/view/Mars')
+def view_mars():
+    return render_template('info-Mars.html')
+
+@app.route('/view/Urany')
+def view_urany():
+    return render_template('info-urano.html')
+
+@app.route('/view/Saturn')
+def view_mars():
+    return render_template('info-saturno.html')
+
+@app.route('/view/Neptune')
+def view_neptune():
+    return render_template('info-neptune.html')
+
+@app.route('/view/Saturn')
+def view_mars():
+    return render_template('info-saturno.html')
+
+@app.route('/museum')
+def museum():
+    return render_template('museum.html')
+
+
 if __name__ == '__main__':
     app.run(debug=True)
