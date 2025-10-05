@@ -6,90 +6,95 @@ const engine = new BABYLON.Engine(canvas, true, { antialias: true, alpha: true }
 const scene  = new BABYLON.Scene(engine);
 scene.clearColor = new BABYLON.Color4(0,0,0,0);
 
-// Cámara: vista desde arriba con ligera inclinación; desactivamos zoom de rueda
-const camera = new BABYLON.ArcRotateCamera("cam", Math.PI*0.25, 0.6, 10, BABYLON.Vector3.Zero(), scene);
+// -------- Cámara (top-down ligera inclinación) ----------
+const CAMERA_ALPHA = Math.PI * 0.25;
+const CAMERA_BETA  = 0.6;
+const CAMERA_RADIUS = 12; // fijo: mantiene tamaño aparente constante
+
+const camera = new BABYLON.ArcRotateCamera("cam", CAMERA_ALPHA, CAMERA_BETA, CAMERA_RADIUS, BABYLON.Vector3.Zero(), scene);
 camera.attachControl(canvas, true);
 camera.panningSensibility = 0;
-camera.wheelPrecision = 999999; // neutraliza el zoom de rueda
+camera.wheelPrecision = 999999; // desactiva zoom con rueda
 if (camera.inputs && camera.inputs.removeMouseWheel) camera.inputs.removeMouseWheel?.();
+camera.lowerRadiusLimit = CAMERA_RADIUS;
+camera.upperRadiusLimit = CAMERA_RADIUS; // bloquea cambios de radio
 
-// Luz básica
+// -------- Luz básica ----------
 new BABYLON.HemisphericLight("hemi", new BABYLON.Vector3(0,1,0), scene);
 
-// ================== Planetas (ajusta scale si tu GLB se ve muy grande/pequeño) ==================
+// -------- Planetas ----------
 const BASE = "/static/models/";
 const PLANETS = [
-  { name: "Sun", file: "Sun.glb", scale: 3.0},
-  { name: "Mercury", file: "Mercury.glb", scale: 1.00 },
-  { name: "Venus",   file: "Venus.glb",   scale: 1.05 },
-  { name: "Earth",   file: "Earth.glb",   scale: 1.00 },
-  { name: "Mars",    file: "Mars.glb",    scale: 0.95 },
-  { name: "Jupiter", file: "Jupiter.glb", scale: 0.70 },
-  { name: "Saturn",  file: "Saturn.glb",  scale: 2.00 },
-  { name: "Uranus",  file: "Uranus.glb",  scale: 0.85 },
-  { name: "Neptune", file: "Neptune.glb", scale: 0.85 }
+   { name: "Sun", file: "Sun.glb"},
+  { name: "Mercury", file: "Mercury.glb" },
+  { name: "Venus",   file: "Venus.glb"   },
+  { name: "Earth",   file: "Earth.glb"   },
+  { name: "Mars",    file: "Mars.glb"    },
+  { name: "Jupiter", file: "Jupiter.glb" },
+  { name: "Saturn",  file: "Saturn.glb"  },
+  { name: "Uranus",  file: "Uranus.glb"  },
+  { name: "Neptune", file: "Neptune.glb" }
 ];
 
-// Estado
+// -------- Estado ----------
 let idx = 0;
 let holder = null;     // planeta actual
 let nextHolder = null; // planeta entrante
 let animating = false;
 
-// Easing y timing
-const D_MS = 550;
-const easeInOutCubic = t => (t<0.5 ? 4*t*t*t : 1 - Math.pow(-2*t+2,3)/2);
+// -------- Timing / Easing ----------
+const D_MS = 600;
+const easeInOut = t => (t<0.5 ? 4*t*t*t : 1 - Math.pow(-2*t+2,3)/2);
 
-// Utilidad: centra y ajusta cámara a tamaño
-function frameAndSize(node, scale = 1.0) {
+// -------- Normalización de tamaño --------
+// Queremos que TODOS los planetas se vean con el MISMO tamaño en pantalla.
+// Definimos un "diámetro objetivo" en unidades de mundo.
+const TARGET_DIAMETER = 4.0; // súbelo para verlos más grandes, bájalo para más pequeños
+
+function centerAndNormalize(node) {
   const { min, max } = node.getHierarchyBoundingVectors(true);
   const center = min.add(max).scale(0.5);
   const size   = max.subtract(min);
   const maxDim = Math.max(size.x, size.y, size.z) || 1;
 
+  // centrar en el origen
   node.position.subtractInPlace(center);
-  node.scaling.scaleInPlace(scale); // escala por-planeta
 
-  camera.target = BABYLON.Vector3.Zero();
-  camera.radius = Math.max(6, maxDim * 2.6); // sube el factor para ver más pequeño
-
-  // límites suaves (por si el usuario hace pinch/zoom en touch)
-  camera.lowerRadiusLimit = camera.radius * 0.9;
-  camera.upperRadiusLimit = camera.radius * 3.0;
-
-  return maxDim;
+  // factor para que el "diámetro" pase a TARGET_DIAMETER
+  const scaleFactor = TARGET_DIAMETER / maxDim;
+  node.scaling.setAll(scaleFactor);
 }
 
-// Carga simple de un planeta en un holder
+// Distancia para “sacar” el planeta fuera del viewport verticalmente
+function offscreenY() {
+  // Con radio fijo, esta proporción funciona bien para sacar el objeto del campo visual
+  return CAMERA_RADIUS * 1.7; // ajusta si quieres deslizamientos más largos/cortos
+}
+
+// Carga un planeta dentro de un TransformNode
 async function createHolderFor(index) {
   const cfg = PLANETS[index];
   const res = await BABYLON.SceneLoader.ImportMeshAsync("", BASE, cfg.file, scene);
+
   const h = new BABYLON.TransformNode(`holder_${cfg.name}`, scene);
   res.meshes.forEach(m => {
     if ((m instanceof BABYLON.Mesh || m instanceof BABYLON.TransformNode) && m !== h) {
       m.parent = h;
     }
   });
-  frameAndSize(h, cfg.scale);
+
+  // Normaliza tamaño y centra
+  centerAndNormalize(h);
+
   return h;
 }
 
-// Carga inicial
+// Init: cargamos el primer planeta. Ya responde al scroll desde el inicio.
 async function init() {
   try {
     holder = await createHolderFor(idx);
+    holder.position.set(0, 0, 0); // en centro
     label.textContent = PLANETS[idx].name;
-    // aparición sutil
-    holder.scaling.scaleInPlace(0.7);
-    const t0 = performance.now(), dur = 280;
-    function appear(t){
-      let k = (t - t0)/dur; if (k>1) k=1;
-      const e = easeInOutCubic(k);
-      const s = 0.7 + (1 - 0.7) * e;
-      holder.scaling.setAll(s);
-      if (k<1) requestAnimationFrame(appear);
-    }
-    requestAnimationFrame(appear);
   } catch (e) {
     console.error(e);
     label.textContent = "No se pudo cargar el modelo. Revisa rutas en /static/models/";
@@ -97,57 +102,38 @@ async function init() {
 }
 init();
 
-// Distancia de deslizamiento (en unidades de mundo)
-function offscreenY() {
-  return camera.radius * 1.6; // ajusta si quieres un viaje más largo/corto
-}
-
-// Transición deslizante: actual baja, nuevo entra desde arriba (o inverso)
+// Transición deslizante: actual baja, nuevo entra desde arriba (o al revés)
 async function slideTo(nextIndex, direction = 1) {
   if (animating) return;
   animating = true;
 
   try {
-    // Pre-carga el siguiente
     nextHolder = await createHolderFor(nextIndex);
-    nextHolder.scaling.setAll(1.0);
-
     const DY = offscreenY();
 
-    // Posición inicial del entrante
-    if (direction === 1) {
-      nextHolder.position.set(0, +DY, 0); // entra desde arriba
-    } else {
-      nextHolder.position.set(0, -DY, 0); // entra desde abajo
-    }
+    // posiciona el nuevo fuera de pantalla
+    nextHolder.position.set(0, direction === 1 ? +DY : -DY, 0);
 
-    // Oculta label durante la transición
     label.style.opacity = "0";
 
-    // Animación manual con easing
     const t0 = performance.now();
     await new Promise(resolve => {
       function step(t) {
         let k = (t - t0) / D_MS; if (k > 1) k = 1;
-        const e = easeInOutCubic(k);
+        const e = easeInOut(k);
 
         if (holder) {
+          // sale en sentido opuesto
           const yOutStart = 0;
           const yOutEnd   = (direction === 1) ? -DY : +DY;
           holder.position.y = yOutStart + (yOutEnd - yOutStart) * e;
-
-          // pequeño fade/scale al salir
-          const s = 1 - 0.15 * e;
-          holder.scaling.setAll(s);
         }
 
         if (nextHolder) {
+          // entra hacia el centro
           const yInStart = (direction === 1) ? +DY : -DY;
           const yInEnd   = 0;
           nextHolder.position.y = yInStart + (yInEnd - yInStart) * e;
-
-          const s = 0.85 + 0.15 * e;
-          nextHolder.scaling.setAll(s);
         }
 
         if (k < 1) requestAnimationFrame(step);
@@ -171,12 +157,12 @@ async function slideTo(nextIndex, direction = 1) {
   }
 }
 
-// Scroll handler con umbral
+// Scroll con umbral (desde el inicio ya funciona)
 let acc = 0, last = 0;
-const THRESHOLD = 220;
+const THRESHOLD = 200;
 
 window.addEventListener("wheel", async (e) => {
-  e.preventDefault?.(); // evitamos scroll de la página
+  e.preventDefault?.(); // evitamos que scrollee la página
 
   acc += e.deltaY;
 
@@ -192,9 +178,9 @@ window.addEventListener("wheel", async (e) => {
   }
 }, { passive: false });
 
-// Render loop
+// Render
 engine.runRenderLoop(() => {
-  if (holder) holder.rotation.y += 0.002; // toque sutil
+  if (holder) holder.rotation.y += 0.002; // rotación sutil sin cambiar tamaño
   scene.render();
 });
 window.addEventListener("resize", () => engine.resize());
