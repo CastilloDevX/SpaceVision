@@ -25,7 +25,7 @@ new BABYLON.HemisphericLight("hemi", new BABYLON.Vector3(0,1,0), scene);
 // -------- Planetas ----------
 const BASE = "/static/models/";
 const PLANETS = [
-  { name: "Sun", file: "Sun.glb" },
+  { name: "Sun",     file: "Sun.glb"     },
   { name: "Mercury", file: "Mercury.glb" },
   { name: "Venus",   file: "Venus.glb"   },
   { name: "Earth",   file: "Earth.glb"   },
@@ -77,8 +77,13 @@ async function createHolderFor(index) {
   res.meshes.forEach(m => {
     if ((m instanceof BABYLON.Mesh || m instanceof BABYLON.TransformNode) && m !== h) {
       m.parent = h;
+      // asegúrate de que sea cliqueable
+      if (m instanceof BABYLON.Mesh) m.isPickable = true;
     }
   });
+
+  // El contenedor no debe interferir con el pick
+  h.isPickable = false;
 
   // Normaliza tamaño y centra
   centerAndNormalize(h);
@@ -185,6 +190,64 @@ window.addEventListener("wheel", async (e) => {
     await slideTo(idx - 1, -1);
   }
 }, { passive: false });
+
+// --------- CLICK EN EL MODELO → /view/[Planeta] ---------
+
+// Helper: ¿la malla golpeada pertenece al holder actual?
+function isHitOnCurrentHolder(mesh) {
+  if (!mesh || !holder) return false;
+  return mesh === holder || mesh.isDescendantOf(holder);
+}
+
+// Navegación
+function goToPlanetView() {
+  const name = PLANETS[idx].name;
+  const url = `/view/${encodeURIComponent(name)}`;
+  window.location.href = url;
+}
+
+// Detectar click (no drag)
+let pointerDownPos = null;
+let pointerDownTime = 0;
+const CLICK_MOVE_TOL = 6;   // px máximos de movimiento para considerar click
+const CLICK_TIME_TOL = 300; // ms máximos entre down y up
+
+scene.onPointerObservable.add((pointerInfo) => {
+  switch (pointerInfo.type) {
+    case BABYLON.PointerEventTypes.POINTERMOVE: {
+      // Hover cursor: pointer cuando estás sobre el planeta actual
+      const pick = scene.pick(scene.pointerX, scene.pointerY);
+      if (!animating && pick?.hit && isHitOnCurrentHolder(pick.pickedMesh)) {
+        canvas.style.cursor = "pointer";
+      } else {
+        canvas.style.cursor = "";
+      }
+      break;
+    }
+
+    case BABYLON.PointerEventTypes.POINTERDOWN: {
+      pointerDownPos = { x: scene.pointerX, y: scene.pointerY };
+      pointerDownTime = performance.now();
+      break;
+    }
+
+    case BABYLON.PointerEventTypes.POINTERUP: {
+      if (animating) break; // no clicks durante la animación
+
+      const dt = performance.now() - pointerDownTime;
+      const dx = Math.abs(scene.pointerX - (pointerDownPos?.x ?? scene.pointerX));
+      const dy = Math.abs(scene.pointerY - (pointerDownPos?.y ?? scene.pointerY));
+      const smallMove = (dx + dy) <= CLICK_MOVE_TOL;
+
+      const pick = scene.pick(scene.pointerX, scene.pointerY);
+      if (dt <= CLICK_TIME_TOL && smallMove && pick?.hit && isHitOnCurrentHolder(pick.pickedMesh)) {
+        goToPlanetView();
+      }
+      pointerDownPos = null;
+      break;
+    }
+  }
+});
 
 // Render
 engine.runRenderLoop(() => {
