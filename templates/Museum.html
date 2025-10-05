@@ -1,636 +1,394 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1.0" />
-<title>Tierra — Explorador Vectorial</title>
-
-<!-- Fuente -->
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>El museo de los planetas — Chrome-style tabs</title>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;800&display=swap" rel="stylesheet">
-
 <style>
   :root{
-    --bg1: #031521;
-    --bg2: #052733;
-    --accent-1: #7fd3c7;
-    --accent-2: #3aa79a;
-    --glass: rgba(255,255,255,0.03);
-    --card-border: rgba(127,211,199,0.06);
-    --text: #eef7f5;
-    --muted: rgba(238,247,245,0.78);
-    --soft-shadow: 0 12px 40px rgba(0,0,0,0.6);
-    --radius: 18px;
-  }
-
-  /* Reset */
-  *{box-sizing:border-box}
-  html,body{height:100%}
-  body{
-    margin:0;
+    --bg:#0b1222;
+    --card:#0f1724;
+    --muted:#98a0b6;
+    --accent:#ffd05a;
+    --glass: rgba(255,255,255,0.04);
+    --tab-bg:#101827;
+    --tab-active:#111827;
+    --radius:12px;
     font-family:"Poppins",system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial;
-    color:var(--text);
-    background:
-      radial-gradient(900px 400px at 12% 12%, rgba(127,211,199,0.02), transparent 8%),
-      radial-gradient(700px 300px at 88% 88%, rgba(58,167,154,0.01), transparent 6%),
-      linear-gradient(180deg,var(--bg1),var(--bg2) 60%, #000 100%);
-    -webkit-font-smoothing:antialiased;
-    -moz-osx-font-smoothing:grayscale;
-    overflow:hidden;
+    color: #eef2f7;
   }
-
-  /* Top header */
-  header.app-header{
-    position:fixed;left:0;right:0;top:0;height:86px;
-    display:flex;align-items:center;justify-content:space-between;
-    padding:14px 28px;gap:18px;z-index:60;
-    background:linear-gradient(180deg, rgba(0,0,0,0.12), rgba(0,0,0,0.06));
-    border-bottom:1px solid rgba(255,255,255,0.03);
-    backdrop-filter: blur(6px);
+  html,body{height:100%;margin:0;background:
+    radial-gradient(800px 360px at 10% 10%, rgba(255,160,60,0.03), transparent 12%),
+    linear-gradient(180deg,#04061a 0%, #07102b 60%); -webkit-font-smoothing:antialiased}
+  header.site-header{
+    padding:18px 28px;
+    display:flex;gap:16px;align-items:center;justify-content:space-between;
+    position:sticky;top:0;background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.06));
+    border-bottom:1px solid rgba(255,255,255,0.03);backdrop-filter: blur(6px);z-index:40;
   }
-
-  .brand{display:flex;align-items:center;gap:16px}
-  .earth-emblem{
-    width:64px;height:64px;border-radius:50%;
-    background: radial-gradient(circle at 35% 30%, #d9f7f1 0%, #7fd3c7 20%, #3aa79a 55%, #155953 90%);
-    box-shadow: 0 12px 40px rgba(60,160,140,0.12), inset 0 -6px 18px rgba(0,0,0,0.06);
-    display:flex;align-items:center;justify-content:center;
-    transform-origin:center;
-    animation: gentleSpin 18s linear infinite;
-    border:1px solid rgba(255,255,255,0.04);
+  header h1{margin:0;font-weight:800;letter-spacing:0.6px;font-size:18px}
+  header p{margin:0;color:var(--muted);font-size:13px}
+  main.container{padding:28px;max-width:1200px;margin:0 auto}
+  /* Chrome-like tabs row */
+  .tabs {
+    display:flex;
+    gap:10px;
+    align-items:flex-end;
+    padding-left:6px;
+    margin-bottom:18px;
+    flex-wrap:wrap;
   }
-  @keyframes gentleSpin{to{transform:rotate(360deg)}}
-
-  .brand h1{font-size:18px;margin:0;font-weight:800;letter-spacing:.6px}
-  .brand p{margin:2px 0 0;font-size:12px;color:var(--muted)}
-
-  /* Top nav */
-  nav.top-nav{display:flex;gap:10px;align-items:center}
-  .nav-btn{
-    display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border-radius:999px;
-    background:transparent;border:1px solid rgba(255,255,255,0.03);
-    color:var(--text);font-weight:700;font-size:13px;cursor:pointer;
-    transition:transform .28s, box-shadow .28s, background .28s;
-    backdrop-filter: blur(6px);
-  }
-  .nav-btn svg{width:18px;height:18px;display:block}
-  .nav-btn:hover{transform:translateY(-6px) scale(1.03);box-shadow:0 12px 30px rgba(60,160,140,0.12)}
-  .nav-btn.active{background:linear-gradient(90deg, rgba(127,211,199,0.12), rgba(58,167,154,0.06));box-shadow:0 14px 36px rgba(58,167,154,0.12)}
-
-  /* Viewport */
-  main.viewport{
-    position:fixed;left:0;right:0;top:86px;bottom:0;overflow:hidden;padding:28px 5%;
-    z-index:20;display:flex;align-items:center;justify-content:center;
-  }
-
-  /* Panels container */
-  .panels{
-    width:1200px;max-width:calc(100% - 80px);height:calc(100% - 120px);
-    position:relative;
-    overflow:visible;
-    display:flex;align-items:center;justify-content:center;
-  }
-
-  /* Panel base */
-  .panel{
-    position:absolute;inset:0;margin:auto;
-    width:100%;height:100%;max-height:980px;
-    display:grid;grid-template-columns: 1fr 480px;gap:36px;align-items:center;
-    padding:48px;border-radius:20px;
-    background: linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.006));
-    border: 1px solid rgba(255,255,255,0.03);
-    box-shadow: var(--soft-shadow);
-    transform: translateX(140%) scale(.98);
-    opacity:0;transition: transform .8s cubic-bezier(.2,.9,.25,1), opacity .5s;
-    will-change: transform, opacity;
-    overflow: hidden;
-  }
-  .panel.active{transform: translateX(0) scale(1);opacity:1;z-index:30}
-
-  /* Panel inner content */
-  .content{
-    padding-right:6%;
-    max-width:920px;
-  }
-  .panel-title{font-size:40px;color:var(--accent-1);margin:0 0 10px 0;letter-spacing:.4px}
-  .lead{font-size:18px;color:var(--muted);line-height:1.6;margin-bottom:18px}
-  .card-blurb{
-    background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.008));
-    padding:18px;border-radius:14px;border:1px solid var(--card-border);
-  }
-
-  .facts{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:18px}
-  .fact{background:rgba(255,255,255,0.02);padding:10px;border-radius:10px;font-weight:600;color:var(--muted);font-size:13px}
-
-  /* Right column - vector illustration + mini-card */
-  .media{
-    display:flex;flex-direction:column;align-items:center;gap:18px;justify-content:center;padding-left:6%;
-  }
-
-  .illustration-wrap, .sun-illustration-container{
-    width:100%;max-width:460px;height:420px;border-radius:16px;
-    display:flex;align-items:center;justify-content:center;
-    background:linear-gradient(180deg, rgba(0,0,0,0.15), rgba(0,0,0,0.10));
+  .tab {
+    --pad-x:16px;
+    background:linear-gradient(180deg,var(--tab-bg), rgba(255,255,255,0.01));
+    color:var(--muted);
+    padding:10px var(--pad-x);
+    border-radius:9px 9px 0 0;
     border:1px solid rgba(255,255,255,0.03);
-    box-shadow: 0 18px 50px rgba(0,0,0,0.5);
-    overflow:hidden;position:relative;
+    box-shadow: 0 6px 16px rgba(0,0,0,0.45);
+    cursor:pointer;
+    font-weight:700;
+    display:inline-flex;
+    align-items:center;
+    gap:10px;
+    user-select:none;
+    transition: transform .12s ease, box-shadow .12s;
   }
-
-  /* SVG container scales nicely */
-  .illustration{
-    width:90%;height:90%;
+  .tab:hover{ transform: translateY(-4px) }
+  .tab.active{
+    background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.006));
+    color: #111827;
+    background-color: var(--accent);
+    border-bottom-color: transparent;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+    transform: translateY(-2px);
+  }
+  /* Tab content card */
+  .card {
+    background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.008));
+    border:1px solid rgba(255,255,255,0.03);
+    border-radius: 0 12px 12px 12px;
+    padding:18px;
+    box-shadow: 0 20px 60px rgba(2,6,23,0.6);
+  }
+  .grid {
+    display:grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap:14px;
+    margin-top:12px;
+  }
+  @media (min-width:980px){ .grid{ grid-template-columns: repeat(4, 1fr); } }
+  .thumb {
+    background: linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.006));
+    border-radius:10px;
+    overflow:hidden;
+    border:1px solid rgba(255,255,255,0.03);
+    display:flex;
+    flex-direction:column;
+    min-height:160px;
+  }
+  .thumb img{
+    width:100%;
+    height:150px;
+    object-fit:cover;
     display:block;
-    transform-origin:center;
-    transition: transform .8s cubic-bezier(.2,.9,.25,1), filter .6s;
-    filter: drop-shadow(0 12px 40px rgba(0,0,0,0.12));
+    background:linear-gradient(45deg, rgba(255,255,255,0.02), rgba(0,0,0,0.03));
   }
-  .illustration-wrap:hover .illustration, .sun-illustration-container:hover .illustration{ transform: scale(1.03) rotate(-3deg) }
-
-  .meta-card{
-    width:100%;padding:12px;border-radius:12px;background:rgba(255,255,255,0.02);
-    border:1px solid var(--card-border);display:flex;gap:12px;align-items:center;
+  .thumb .meta{
+    padding:10px;
+    font-size:13px;
+    color:var(--muted);
+    display:flex;
+    flex-direction:column;
+    gap:6px;
   }
-  .meta-card .dot{width:14px;height:14px;border-radius:50%;background:var(--accent-1)}
-  .meta-card p{margin:0;font-size:13px;color:var(--muted)}
-
-  /* Side progress */
-  .side-progress{
-    position:fixed;right:22px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:12px;z-index:40;
-  }
-  .dot-btn{width:14px;height:14px;border-radius:50%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.03);cursor:pointer}
-  .dot-btn.active{background:linear-gradient(180deg,var(--accent-1),var(--accent-2));box-shadow:0 10px 26px rgba(58,167,154,0.14);transform:scale(1.25)}
-
-  /* Responsive */
-  @media (max-width:1100px){
-    .panels{max-width:calc(100% - 60px)}
-    .panel{grid-template-columns: 1fr 380px;padding:32px}
-    .illustration-wrap{height:360px}
-  }
-  @media (max-width:900px){
-    main.viewport{padding:18px}
-    .panel{grid-template-columns:1fr;padding:22px;border-radius:14px}
-    .illustration-wrap{max-width:100%;height:320px}
-  }
+  .thumb .meta .title{font-weight:700;color:#fff;font-size:13px}
+  .thumb .meta .logros{font-size:12px;color:var(--muted);min-height:40px}
+  .small-note{font-size:12px;color:var(--muted);margin-top:10px}
+  .controls{display:flex;gap:8px;align-items:center}
+  .btn{background:transparent;border:1px solid rgba(255,255,255,0.03);padding:8px 12px;border-radius:8px;color:var(--muted);cursor:pointer;font-weight:700}
+  .spinner{width:20px;height:20px;border-radius:50%;border:3px solid rgba(255,255,255,0.06);border-top-color:var(--accent);animation:spin 1s linear infinite;display:inline-block}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  footer.note{margin-top:18px;color:var(--muted);font-size:13px}
+  a.credit{color:var(--muted);text-decoration:underline;font-weight:600}
+  /* small responsive tweaks */
   @media (max-width:640px){
-    .panel{grid-template-columns:1fr;gap:18px;padding:18px;align-items:flex-start}
-    .media{order:-1;padding-left:0}
-    .illustration-wrap{height:260px}
-    .panel-title{font-size:28px}
+    header{padding:12px}
+    .tabs{gap:8px}
+    .tab{padding:8px 10px;font-size:13px}
   }
-
-  /* staging reveals */
-  .stagger{opacity:0;transform:translateY(8px);transition: all .6s cubic-bezier(.2,.9,.25,1)}
-  .stagger.show{opacity:1;transform:none}
 </style>
 </head>
 <body>
-
-<!-- Partículas (canvas) -->
-<canvas id="particle-canvas" style="position:fixed;inset:0;z-index:5;pointer-events:none"></canvas>
-
-<header class="app-header" role="banner">
-  <div class="brand" aria-hidden="false">
-    <div class="earth-emblem" aria-hidden="true">
-      <!-- tiny globe detail -->
-      <svg width="42" height="42" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-        <circle cx="32" cy="32" r="30" fill="#7fd3c7"/>
-        <path d="M12 28c6-8 18-10 28-6" stroke="#1f6b5f" stroke-width="2" fill="none" stroke-linecap="round"/>
-        <path d="M20 42c6 4 18 6 30 0" stroke="#1f6b5f" stroke-width="2" fill="none" stroke-linecap="round"/>
-      </svg>
-    </div>
+  <header class="site-header" role="banner">
     <div>
-      <h1>LA TIERRA</h1>
-      <p>Explorador vectorial — técnico</p>
+      <h1>El museo de los planetas</h1>
+      <p>Colección curada — imágenes oficiales NASA</p>
     </div>
-  </div>
+    <div class="controls" aria-hidden="false">
+      <button id="refreshAll" class="btn" title="Recargar todas las pestañas">Recargar todas</button>
+      <div id="globalSpinner" style="display:none" class="spinner" title="Cargando..."></div>
+    </div>
+  </header>
 
-  <nav class="top-nav" role="navigation" aria-label="Navegación principal">
-    <button class="nav-btn active" data-target="0" aria-pressed="true" title="Composición y estructura">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
-      Estructura
-    </button>
+  <main class="container" role="main">
+    <!-- Tabs -->
+    <nav class="tabs" role="tablist" aria-label="Selecciona un cuerpo">
+      <!-- We'll generate tabs from JS to keep code DRY -->
+    </nav>
 
-    <button class="nav-btn" data-target="1" title="Atmósfera">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h18"/><path d="M12 2v4"/></svg>
-      Atmósfera
-    </button>
-
-    <button class="nav-btn" data-target="2" title="Movimiento y órbita">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 3v9l3 3"/></svg>
-      Órbita
-    </button>
-
-    <button class="nav-btn" data-target="3" title="Influencia y curiosidades">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l2 5 5 .5-4 3 1.5 5L12 14l-4.5 2.5L9 10 5 7.5 10 7z"/></svg>
-      Curiosidades
-    </button>
-  </nav>
-</header>
-
-<main class="viewport" role="main">
-  <div class="panels">
-
-    <!-- PANEL 0: Composición y estructura -->
-    <section class="panel active" data-index="0" id="panel-0" aria-labelledby="title-0" role="region">
-      <div class="content">
-        <h2 id="title-0" class="panel-title stagger show">Composición y estructura</h2>
-        <p class="lead stagger show" style="transition-delay:.05s">La Tierra es un planeta rocoso compuesto por <strong>núcleo metálico</strong>, <strong>manto</strong> y <strong>corteza</strong>. Su tectónica de placas crea volcanes, montañas y la dinámica que modela la superficie.</p>
-
-        <div class="card-blurb stagger show" style="transition-delay:.12s">
-          <strong>Núcleo:</strong> núcleo interno sólido y externo líquido que generan el campo magnético. <br>
-          <strong>Manto:</strong> convección y deformación que mueve placas. <br>
-          <strong>Corteza:</strong> placas tectónicas, océanos y cadenas montañosas.
+    <!-- Content card where tab panels will render -->
+    <section id="panelArea" class="card" aria-live="polite">
+      <div id="panelHeader" style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+        <div>
+          <h2 id="panelTitle" style="margin:0;font-size:20px;color:var(--accent)">Cargando...</h2>
+          <p id="panelSubtitle" style="margin:6px 0 0 0;color:var(--muted);font-size:13px">Imágenes proporcionadas por la API de imágenes de la NASA</p>
         </div>
-
-        <div class="facts stagger show" style="transition-delay:.20s">
-          <div class="fact"><strong>Tipo:</strong> Planeta rocoso (telúrico)</div>
-          <div class="fact"><strong>Estructura:</strong> Núcleo, manto, corteza</div>
-          <div class="fact"><strong>Superficie:</strong> océanos, continentes, montañas</div>
-          <div class="fact"><strong>Tectónica:</strong> placas activas</div>
+        <div style="display:flex;align-items:center;gap:12px">
+          <button id="reloadTab" class="btn">Recargar pestaña</button>
+          <div id="tabSpinner" style="display:none" class="spinner" title="Cargando..."></div>
         </div>
       </div>
 
-      <aside class="media">
-        <div class="sun-illustration-container" aria-hidden="false">
-          <!-- SVG: schematic cross-section of Earth (technical) -->
-          <svg class="illustration" viewBox="0 0 800 720" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Corte transversal de la Tierra">
-            <defs>
-              <linearGradient id="mantleGrad" x1="0" x2="1">
-                <stop offset="0%" stop-color="#f6efdd"/>
-                <stop offset="100%" stop-color="#d7a36a"/>
-              </linearGradient>
-              <linearGradient id="coreGrad" x1="0" x2="1">
-                <stop offset="0%" stop-color="#ffd9a3"/>
-                <stop offset="100%" stop-color="#ff8a3d"/>
-              </linearGradient>
-            </defs>
-
-            <rect width="100%" height="100%" fill="transparent"/>
-
-            <g transform="translate(400,360)">
-              <!-- outer ocean/land rim -->
-              <circle r="220" fill="#1e6d7a" stroke="#0e3b3f" stroke-width="2"/>
-              <!-- crust band -->
-              <circle r="160" fill="#2a8f6f" stroke="#17614f" stroke-width="2"/>
-              <!-- mantle -->
-              <circle r="90" fill="url(#mantleGrad)" opacity="0.95"/>
-              <!-- core -->
-              <circle r="44" fill="url(#coreGrad)" opacity="0.98"/>
-
-              <!-- tectonic plate lines (schematic) -->
-              <g stroke="#0c2f2b" stroke-width="3" stroke-linecap="round" opacity="0.9">
-                <path d="M-160,-20 C-120,-40 -80,-20 -40,-10"/>
-                <path d="M20,-80 C60,-60 100,-40 140,-20"/>
-                <path d="M-40,60 C0,40 40,30 90,20"/>
-              </g>
-
-              <!-- labels -->
-              <g transform="translate(-240,-160)" fill="#fff" font-size="14" opacity="0.95">
-                <text x="0" y="0">Corteza (placas)</text>
-              </g>
-              <g transform="translate(-120,-20)" fill="#fff" font-size="13" opacity="0.95">
-                <text x="0" y="0">Manto — convección</text>
-              </g>
-              <g transform="translate(-60,120)" fill="#fff" font-size="13" opacity="0.95">
-                <text x="0" y="0">Núcleo (generador magnético)</text>
-              </g>
-            </g>
-
-            <!-- small legend -->
-            <g transform="translate(40,520)">
-              <rect x="0" y="0" width="320" height="70" rx="8" fill="rgba(255,255,255,0.02)"/>
-              <text x="14" y="26" font-size="12" fill="#fff">Corteza → Manto → Núcleo</text>
-              <text x="14" y="46" font-size="11" fill="#cfeee6">Placas tectónicas activas — volcanismo y orogénesis</text>
-            </g>
-          </svg>
-        </div>
-
-        <div class="meta-card">
-          <div style="flex:1">
-            <div style="font-weight:800">Resumen rápido</div>
-            <p style="margin:6px 0 0 0;color:var(--muted);font-size:13px">Estructura por capas con dinámica interna que sostiene la tectónica y el campo magnético.</p>
-          </div>
-          <div class="dot" aria-hidden="true"></div>
-        </div>
-      </aside>
-    </section>
-
-    <!-- PANEL 1: Atmósfera -->
-    <section class="panel" data-index="1" id="panel-1" aria-labelledby="title-1" role="region">
-      <div class="content">
-        <h2 id="title-1" class="panel-title stagger">Atmósfera</h2>
-        <p class="lead stagger" style="transition-delay:.05s">La atmósfera terrestre está compuesta principalmente de <strong>nitrógeno (≈78%)</strong> y <strong>oxígeno (≈21%)</strong>, además de trazas de otros gases. Es esencial para la vida, filtra radiación dañina y regula la temperatura.</p>
-
-        <div class="card-blurb stagger" style="transition-delay:.12s">
-          La atmósfera (troposfera, estratosfera, mesosfera, termosfera) contiene capas con funciones distintas: clima, ozono protector y enlaces con la magnetosfera.
-        </div>
-
-        <div class="facts stagger" style="transition-delay:.20s">
-          <div class="fact"><strong>Composición:</strong> N₂, O₂, Ar, CO₂ (trazas)</div>
-          <div class="fact"><strong>Función:</strong> protección, regulación térmica</div>
-          <div class="fact"><strong>Capas:</strong> troposfera → estratosfera → termosfera</div>
-          <div class="fact"><strong>Ozon:</strong> filtra UV</div>
-        </div>
+      <div id="contentArea" style="margin-top:12px">
+        <!-- Grid will be injected here -->
+        <div id="grid" class="grid"></div>
+        <p class="small-note" style="margin-top:12px">Cada imagen muestra título y una breve nota — "Logros" se extrae de los metadatos oficiales (keywords / descripción) cuando está disponible. Las fuentes son recursos oficiales de la NASA (images.nasa.gov / photojournal.jpl.nasa.gov).</p>
+        <footer class="note">Créditos: Imágenes y metadatos proporcionados por <a class="credit" href="https://images.nasa.gov" target="_blank" rel="noopener noreferrer">NASA Images API</a>.</footer>
       </div>
-
-      <aside class="media">
-        <div class="sun-illustration-container">
-          <!-- SVG: schematic atmosphere layers + ozone shield -->
-          <svg class="illustration" viewBox="0 0 800 600" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Ilustración de la atmósfera terrestre">
-            <defs>
-              <linearGradient id="atm1" x1="0" x2="0"><stop offset="0%" stop-color="#bfeee6"/><stop offset="100%" stop-color="#8fd9c9"/></linearGradient>
-            </defs>
-
-            <rect width="100%" height="100%" fill="transparent"/>
-            <g transform="translate(400,260)">
-              <!-- planet disk -->
-              <circle r="120" fill="#1f8b72" stroke="#0b4b3e" stroke-width="4"/>
-              <!-- atmosphere rings -->
-              <circle r="150" fill="none" stroke="url(#atm1)" stroke-width="8" opacity="0.24"/>
-              <circle r="180" fill="none" stroke="url(#atm1)" stroke-width="6" opacity="0.18"/>
-              <circle r="210" fill="none" stroke="url(#atm1)" stroke-width="4" opacity="0.12"/>
-            </g>
-
-            <!-- layer labels -->
-            <g transform="translate(80,420)">
-              <rect x="0" y="0" width="640" height="82" rx="10" fill="rgba(255,255,255,0.02)"/>
-              <text x="18" y="24" font-size="13" fill="#fff">Capas atmosféricas (esquema): Troposfera → Estratosfera (ozono) → Mesosfera → Termosfera</text>
-              <text x="18" y="48" font-size="12" fill="#cfeee6">Nitrógeno y Oxígeno dominan; ozono filtra UV; atmósfera mantiene temperatura estable para la vida.</text>
-            </g>
-
-            <!-- ozone badge -->
-            <g transform="translate(580,120)">
-              <circle r="26" fill="#9ce3d8" opacity="0.95"/>
-              <text x="-16" y="6" font-size="12" fill="#063A33">O₃</text>
-            </g>
-          </svg>
-        </div>
-
-        <div class="meta-card">
-          <div style="flex:1">
-            <div style="font-weight:800">Dato</div>
-            <p style="margin:6px 0 0 0;color:var(--muted);font-size:13px">La atmósfera no solo soporta la vida: actúa como sistema térmico y protector frente a radiación.</p>
-          </div>
-          <div class="dot" aria-hidden="true"></div>
-        </div>
-      </aside>
     </section>
-
-    <!-- PANEL 2: Movimiento y órbita -->
-    <section class="panel" data-index="2" id="panel-2" aria-labelledby="title-2" role="region">
-      <div class="content">
-        <h2 id="title-2" class="panel-title stagger">Movimiento y órbita</h2>
-        <p class="lead stagger" style="transition-delay:.05s">La Tierra tarda <strong>365.25 días</strong> en completar una órbita alrededor del Sol. Gira sobre su eje cada <strong>24 horas</strong>, lo que genera el ciclo día-noche. La inclinación del eje (~23.4°) produce las estaciones.</p>
-
-        <div class="card-blurb stagger" style="transition-delay:.12s">
-          La combinación de órbita elíptica y la inclinación axial determina distribución estacional de la energía solar en la superficie.
-        </div>
-
-        <div class="facts stagger" style="transition-delay:.20s">
-          <div class="fact"><strong>Año:</strong> 365.25 días</div>
-          <div class="fact"><strong>Rotación:</strong> ~24 h (día)</div>
-          <div class="fact"><strong>Inclinación:</strong> ~23.4° → estaciones</div>
-          <div class="fact"><strong>Órbita:</strong> casi circular (ligera excentricidad)</div>
-        </div>
-      </div>
-
-      <aside class="media">
-        <div class="sun-illustration-container">
-          <!-- SVG: orbit diagram + axial tilt -->
-          <svg class="illustration" viewBox="0 0 800 600" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Ilustración de la órbita y rotación de la Tierra">
-            <rect width="100%" height="100%" fill="transparent"/>
-            <!-- Sun -->
-            <g transform="translate(400,300)">
-              <circle r="28" fill="#ffd86b" opacity="0.95"/>
-            </g>
-
-            <!-- Earth's orbit -->
-            <g transform="translate(400,300)">
-              <ellipse rx="260" ry="200" fill="none" stroke="#6aa79a" stroke-dasharray="6 6" stroke-width="1.6" opacity="0.6"/>
-              <!-- Earth marker -->
-              <g transform="translate(260,0)">
-                <circle r="16" fill="#1f8b72" stroke="#0b4b3e" stroke-width="2"/>
-                <!-- axis tilt indicator -->
-                <line x1="-8" y1="-20" x2="8" y2="20" stroke="#cfeee6" stroke-width="2" stroke-linecap="round" transform="rotate(23.4)"/>
-                <text x="-12" y="44" font-size="12" fill="#fff">Tierra</text>
-              </g>
-            </g>
-
-            <!-- annotation -->
-            <g transform="translate(40,420)">
-              <rect x="0" y="0" width="640" height="60" rx="10" fill="rgba(255,255,255,0.02)" stroke="#183a36"/>
-              <text x="18" y="36" font-size="13" fill="#fff">Órbita: 365.25 días — Rotación: 24 h — Inclinación axial ≈ 23.4° → estaciones</text>
-            </g>
-          </svg>
-        </div>
-
-        <div class="meta-card">
-          <div style="flex:1">
-            <div style="font-weight:800">Movimiento</div>
-            <p style="margin:6px 0 0 0;color:var(--muted);font-size:13px">Rotación y órbita combinadas producen el ritmo diario y las estaciones que modelan el clima global.</p>
-          </div>
-          <div class="dot" aria-hidden="true"></div>
-        </div>
-      </aside>
-    </section>
-
-    <!-- PANEL 3: Influencia y curiosidades -->
-    <section class="panel" data-index="3" id="panel-3" aria-labelledby="title-3" role="region">
-      <div class="content">
-        <h2 id="title-3" class="panel-title stagger">Influencia y curiosidades</h2>
-        <p class="lead stagger" style="transition-delay:.05s">La Tierra es el único planeta conocido con vida. Tiene una <strong>Luna</strong> y un <strong>campo magnético</strong> robusto que protege la superficie de la radiación solar y cósmica.</p>
-
-        <div class="card-blurb stagger" style="transition-delay:.12s">
-          El campo magnético proviene del núcleo externo líquido; la Luna estabiliza la inclinación axial y afecta las mareas — ambos factores influyen en el clima y la habitabilidad.
-        </div>
-
-        <div class="facts stagger" style="transition-delay:.20s">
-          <div class="fact"><strong>Vida:</strong> único planeta conocido</div>
-          <div class="fact"><strong>Luna:</strong> presente — influencia mareas</div>
-          <div class="fact"><strong>Campo magnético:</strong> fuerte — protección</div>
-          <div class="fact"><strong>Agua:</strong> océanos cubren ~71% de la superficie</div>
-        </div>
-      </div>
-
-      <aside class="media">
-        <div class="sun-illustration-container">
-          <!-- SVG: magnetosphere + Moon + ocean emphasis -->
-          <svg class="illustration" viewBox="0 0 800 600" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Ilustración de la magnetosfera y la Luna">
-            <rect width="100%" height="100%" fill="transparent"/>
-
-            <!-- Earth -->
-            <g transform="translate(260,300)">
-              <circle r="64" fill="#1f8b72" stroke="#0b4b3e" stroke-width="3"/>
-              <text x="-36" y="86" font-size="12" fill="#fff">Océanos (~71%)</text>
-            </g>
-
-            <!-- magnetosphere arcs -->
-            <g transform="translate(260,300)" stroke="#8fe8d8" stroke-width="3" fill="none" opacity="0.9">
-              <path d="M-160,0 C-120,-100 -80,-120 -40,-120"/>
-              <path d="M-160,0 C-120,100 -80,120 -40,120"/>
-            </g>
-
-            <!-- Moon -->
-            <g transform="translate(520,220)">
-              <circle r="20" fill="#e6e6e6" stroke="#cfcfcf" stroke-width="2"/>
-              <text x="-18" y="40" font-size="12" fill="#fff">Luna</text>
-            </g>
-
-            <!-- legend -->
-            <g transform="translate(40,440)">
-              <rect x="0" y="0" width="640" height="70" rx="8" fill="rgba(255,255,255,0.02)"/>
-              <text x="14" y="26" font-size="13" fill="#fff">Campo magnético desvía partículas cargadas — protege la biosfera.</text>
-              <text x="14" y="46" font-size="11" fill="#cfeee6">La Luna estabiliza la inclinación axial y genera mareas importantes para procesos biológicos.</text>
-            </g>
-          </svg>
-        </div>
-
-        <div class="meta-card">
-          <div style="flex:1">
-            <div style="font-weight:800">Perspectiva</div>
-            <p style="margin:6px 0 0 0;color:var(--muted);font-size:13px">La combinación de atmósfera, agua, campo magnético y luna hacen de la Tierra un entorno excepcionalmente habitable.</p>
-          </div>
-          <div class="dot" aria-hidden="true"></div>
-        </div>
-      </aside>
-    </section>
-
-  </div>
-</main>
-
-<!-- side progress -->
-<div class="side-progress" aria-hidden="false">
-  <div class="dot-btn active" data-target="0" title="Estructura"></div>
-  <div class="dot-btn" data-target="1" title="Atmósfera"></div>
-  <div class="dot-btn" data-target="2" title="Órbita"></div>
-  <div class="dot-btn" data-target="3" title="Curiosidades"></div>
-</div>
+  </main>
 
 <script>
-/* ---------------------------
-   Partículas sutiles - Canvas
-   --------------------------- */
-(function particles(){
-  const canvas = document.getElementById('particle-canvas');
-  const ctx = canvas.getContext('2d');
-  let w = canvas.width = innerWidth, h = canvas.height = innerHeight;
-  window.addEventListener('resize', ()=>{ w=canvas.width=innerWidth; h=canvas.height=innerHeight; });
+/*
+  Plantilla completa: Chrome-style tabs + fetch dinámico de imágenes oficiales NASA.
 
-  const N = Math.round((w*h)/70000);
-  const parts = Array.from({length: Math.max(60, N)}, ()=>({
-    x: Math.random()*w,
-    y: Math.random()*h,
-    r: Math.random()*1.8 + 0.3,
-    vx: (Math.random()-0.5)*0.15,
-    vy: (Math.random()-0.5)*0.15,
-    alpha: Math.random()*0.6 + 0.15
-  }));
+  - Pestañas predeterminadas (9): Luna, Mercurio, Venus, Tierra, Marte, Júpiter, Saturno, Urano, Neptuno
+  - Por cada pestaña se intentan traer 4 imágenes desde la NASA Images API:
+      https://images-api.nasa.gov/search?q=...&media_type=image
+  - Mostramos título, fuente (link a la página de la NASA) y una sección "Logros" basada en keywords / descripción.
+  - Esto evita que el asistente tenga que incrustar URLs fijas y garantiza que las imágenes provengan directamente de recursos oficiales NASA.
+  - Si quieres imágenes y textos concretos preseleccionados, indícalo y puedo adaptar la búsqueda por PIA / nasa_id.
+*/
 
-  function step(){
-    ctx.clearRect(0,0,w,h);
-    for(const p of parts){
-      p.x += p.vx;
-      p.y += p.vy;
-      if(p.x < -10) p.x = w + 10;
-      if(p.x > w + 10) p.x = -10;
-      if(p.y < -10) p.y = h + 10;
-      if(p.y > h + 10) p.y = -10;
-      ctx.beginPath();
-      ctx.fillStyle = 'rgba(255,255,255,'+ (p.alpha*0.9) +')';
-      ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
-      ctx.fill();
-    }
-    requestAnimationFrame(step);
+/* ----- CONFIG ----- */
+const BODIES = [
+  { id: 'moon',  label: 'Luna',        q: 'Moon' },
+  { id: 'mercury', label: 'Mercurio',  q: 'Mercury MESSENGER' },
+  { id: 'venus', label: 'Venus',      q: 'Venus Magellan' },
+  { id: 'earth', label: 'Tierra',     q: 'Earth Blue Marble' },
+  { id: 'mars', label: 'Marte',       q: 'Mars Curiosity Perseverance' },
+  { id: 'jupiter', label: 'Júpiter',  q: 'Jupiter Juno' },
+  { id: 'saturn', label: 'Saturno',   q: 'Saturn Cassini' },
+  { id: 'uranus', label: 'Urano',     q: 'Uranus Voyager 2' },
+  { id: 'neptune', label: 'Neptuno',  q: 'Neptune Voyager 2' }
+];
+
+const IMAGES_PER_TAB = 4;
+const NASA_API_BASE = 'https://images-api.nasa.gov/search';
+
+/* ----- DOM refs ----- */
+const tabsContainer = document.querySelector('.tabs');
+const panelTitle = document.getElementById('panelTitle');
+const panelSubtitle = document.getElementById('panelSubtitle');
+const grid = document.getElementById('grid');
+const panelSpinner = document.getElementById('tabSpinner');
+const globalSpinner = document.getElementById('globalSpinner');
+const reloadTabBtn = document.getElementById('reloadTab');
+const refreshAllBtn = document.getElementById('refreshAll');
+
+let activeTab = null;
+let cache = {}; // simple in-memory cache of results per body id
+
+/* ----- Utility helpers ----- */
+function el(tag, attrs={}, ...children){
+  const e = document.createElement(tag);
+  for(const k in attrs){
+    if(k === 'class') e.className = attrs[k];
+    else if(k === 'html') e.innerHTML = attrs[k];
+    else e.setAttribute(k, attrs[k]);
   }
-  step();
-})();
-
-/* ---------------------------
-   Navigation logic (panels)
-   --------------------------- */
-const panels = Array.from(document.querySelectorAll('.panel'));
-const navBtns = Array.from(document.querySelectorAll('.nav-btn'));
-const dots = Array.from(document.querySelectorAll('.dot-btn'));
-let current = 0;
-const STAGGER_DELAY = 90;
-
-function setActive(index, direction=1){
-  if(index === current) return;
-  // clamp
-  index = Math.max(0, Math.min(panels.length-1, index));
-  const prev = current;
-  const next = index;
-  // remove active from previous
-  panels[prev].classList.remove('active');
-  navBtns[prev].classList.remove('active');
-  navBtns[prev].setAttribute('aria-pressed','false');
-  dots[prev].classList.remove('active');
-
-  // activate next
-  panels[next].classList.add('active');
-  navBtns[next].classList.add('active');
-  navBtns[next].setAttribute('aria-pressed','true');
-  dots[next].classList.add('active');
-
-  // reveal staggered children for polish
-  revealStagger(panels[next]);
-
-  // update current
-  current = next;
-  // update URL hash (optional)
-  history.replaceState(null, '', '#p' + next);
+  for(const ch of children) if(ch) e.appendChild(typeof ch === 'string'? document.createTextNode(ch) : ch);
+  return e;
 }
 
-function revealStagger(panelEl){
-  const items = panelEl.querySelectorAll('.stagger');
-  items.forEach((it, i) => {
-    it.classList.remove('show');
-    setTimeout(()=> it.classList.add('show'), i * STAGGER_DELAY + 90);
+function showSpinner(which, show=true){
+  const el = which === 'global' ? globalSpinner : panelSpinner;
+  el.style.display = show ? 'inline-block' : 'none';
+}
+
+/* ----- NASA fetch logic ----- */
+/*
+  We'll call the NASA Images API with the query and request JSON.
+  We prefer results that include links[].href (thumbnails/full images).
+*/
+async function fetchNASAImages(query, limit=IMAGES_PER_TAB){
+  const url = `${NASA_API_BASE}?q=${encodeURIComponent(query)}&media_type=image`;
+  const resp = await fetch(url);
+  if(!resp.ok) throw new Error('Error al llamar la API NASA: ' + resp.status);
+  const json = await resp.json();
+  // collection.items is an array. Each item has data[] and links[] (sometimes links missing)
+  const items = (json.collection && json.collection.items) ? json.collection.items : [];
+  // prepare a small list of sanitized cards: { title, description, href (image), nasa_page (href data link), keywords }
+  const cards = [];
+  for(const it of items){
+    if(cards.length >= limit) break;
+    const data = (it.data && it.data[0]) ? it.data[0] : null;
+    const link = (it.links && it.links[0] && it.links[0].href) ? it.links[0].href : null;
+    // If no link present, skip; sometimes there are items with only asset endpoint
+    if(!link) continue;
+    const card = {
+      title: data && data.title ? data.title : (data && data.nasa_id ? data.nasa_id : 'Sin título'),
+      description: data && data.description ? data.description : '',
+      keywords: Array.isArray(data && data.keywords) ? data.keywords : [],
+      photographer: data && data.photographer ? data.photographer : (data && data.secondary_creator ? data.secondary_creator : ''),
+      image: link,
+      // try to link to the item's NASA page (nasa_id uses the search endpoint to build a page)
+      nasa_id: data && data.nasa_id ? data.nasa_id : null,
+      nasa_page: data && data.nasa_id ? `https://images.nasa.gov/details-${encodeURIComponent(data.nasa_id)}` : null
+    };
+    cards.push(card);
+  }
+  return cards;
+}
+
+/* ----- DOM rendering ----- */
+
+function renderTabs(){
+  tabsContainer.innerHTML = '';
+  BODIES.forEach((b, idx) => {
+    const t = el('button', { class: 'tab', role:'tab', 'data-id': b.id, title: b.label }, b.label);
+    t.addEventListener('click', ()=> activateTab(b.id));
+    tabsContainer.appendChild(t);
+    // set first active by default
+    if(idx === 0) activeTab = b.id;
+  });
+  // set the first active visually and load it
+  setActiveVisual(activeTab);
+}
+
+function setActiveVisual(id){
+  Array.from(tabsContainer.children).forEach(btn=>{
+    if(btn.dataset.id === id) btn.classList.add('active');
+    else btn.classList.remove('active');
   });
 }
 
-// init nav click
-navBtns.forEach(b => b.addEventListener('click', ()=> {
-  const target = Number(b.dataset.target);
-  setActive(target, target > current ? 1 : -1);
-}));
+/* Build "Logros" text from metadata heuristics */
+function buildLogrosText(card, bodyLabel){
+  // Prefer keywords if any and short
+  if(card.keywords && card.keywords.length){
+    // take up to 5 keywords and join
+    const k = card.keywords.slice(0,5).join(', ');
+    return `Logros / etiquetas: ${k}`;
+  }
+  // fallback: look into description and pull a short sentence
+  if(card.description && card.description.length){
+    // take first 140 chars, end at a full stop if present
+    const idx = card.description.indexOf('.');
+    if(idx > 40) return 'Logros: ' + card.description.slice(0, Math.min(140, idx + 1)).trim();
+    return 'Logros: ' + card.description.slice(0, 140).trim() + (card.description.length>140? '…':'');
+  }
+  // fallback generic achievements per body (brief)
+  const generic = {
+    'Luna': 'Llegada de misiones tripuladas (Apollo), mapeo por LRO, aterrizajes y rovers (sondas).',
+    'Mercurio': 'Sobrevuelos y mapeo por MESSENGER — mejora del conocimiento de la superficie y campo magnético.',
+    'Venus': 'Radar y sondas Magellan / Venera — mapeo y análisis atmosférico.',
+    'Tierra': 'Observación global — estaciones, clima, y teledetección (Blue Marble).',
+    'Marte': 'Rovers, orbitadores y detección de agua pasada; múltiples aterrizajes exitosos.',
+    'Júpiter': 'Misiones Juno/Galileo — mapeo de atmósfera y campo magnético; descubrimiento de lunas.',
+    'Saturno': 'Cassini: descubrimiento de geología de Titán, anillos y composición atmosférica.',
+    'Urano': 'Explorado por Voyager 2 — descubrimiento de inclinación extrema y anillos.',
+    'Neptuno': 'Voyager 2: descubrimiento de lunas y atmósfera con fuertes vientos.'
+  };
+  return 'Logros: ' + (generic[bodyLabel] || 'Exploraciones y datos científicos disponibles en recursos NASA.');
+}
 
-dots.forEach(d => d.addEventListener('click', ()=> {
-  const target = Number(d.dataset.target);
-  setActive(target, target > current ? 1 : -1);
-}));
+function renderGrid(cards, bodyLabel){
+  grid.innerHTML = '';
+  if(!cards || cards.length === 0){
+    grid.appendChild(el('p', { class:'small-note' }, 'No se encontraron imágenes oficiales para esta búsqueda.'));
+    return;
+  }
+  cards.forEach(card => {
+    const thumb = el('article', { class: 'thumb' });
+    const img = el('img', { src: card.image, alt: card.title });
+    // click opens NASA image page in new tab (prefer official landing when possible)
+    img.style.cursor = 'pointer';
+    img.addEventListener('click', ()=>{
+      if(card.nasa_page) window.open(card.nasa_page, '_blank', 'noopener');
+      else window.open(card.image, '_blank', 'noopener');
+    });
 
-// keyboard navigation
-window.addEventListener('keydown', e => {
-  if(e.key === 'ArrowRight'){ if(current < panels.length-1) setActive(current+1,1); }
-  if(e.key === 'ArrowLeft'){ if(current > 0) setActive(current-1,-1); }
+    const meta = el('div', { class: 'meta' },
+      el('div', { class: 'title' }, card.title),
+      el('div', { class: 'logros' }, buildLogrosText(card, bodyLabel)),
+      el('div', { class: 'small' }, 
+         el('a', { href: card.nasa_page || card.image, target: '_blank', rel:'noopener noreferrer', class:'credit' }, 'Fuente NASA'))
+    );
+
+    thumb.appendChild(img);
+    thumb.appendChild(meta);
+    grid.appendChild(thumb);
+  });
+}
+
+/* ----- Activation / loading flow ----- */
+async function activateTab(id){
+  if(activeTab === id && cache[id]) return; // already active and cached
+  activeTab = id;
+  setActiveVisual(id);
+  // update header
+  const bodyConf = BODIES.find(b=>b.id===id);
+  panelTitle.textContent = bodyConf ? bodyConf.label : id;
+  panelSubtitle.textContent = `Buscando imágenes oficiales NASA para "${bodyConf.q}" — ${IMAGES_PER_TAB} resultados.`;
+  // show spinner
+  showSpinner('panel', true);
+  try {
+    let cards;
+    if(cache[id]) {
+      cards = cache[id];
+    } else {
+      cards = await fetchNASAImages(bodyConf.q, IMAGES_PER_TAB);
+      // store cache (basic)
+      cache[id] = cards;
+    }
+    renderGrid(cards, bodyConf.label);
+  } catch(err){
+    grid.innerHTML = '';
+    grid.appendChild(el('p', { class:'small-note' }, `Error al cargar imágenes: ${err.message}`));
+    console.error(err);
+  } finally {
+    showSpinner('panel', false);
+  }
+}
+
+/* ----- Global controls ----- */
+reloadTabBtn.addEventListener('click', async () => {
+  if(!activeTab) return;
+  // clear cache for this tab and reload
+  delete cache[activeTab];
+  await activateTab(activeTab);
 });
 
-// swipe support
-(function swipe(){
-  let sx=0, sy=0;
-  window.addEventListener('touchstart', e => {
-    sx = e.touches[0].clientX; sy = e.touches[0].clientY;
-  }, {passive:true});
-  window.addEventListener('touchend', e => {
-    const ex = e.changedTouches[0].clientX;
-    const dx = ex - sx;
-    if(Math.abs(dx) > 50){
-      if(dx < 0 && current < panels.length-1) setActive(current+1,1);
-      if(dx > 0 && current > 0) setActive(current-1,-1);
-    }
-  }, {passive:true});
-})();
-
-// Reveal first panel on load (stagger children)
-document.addEventListener('DOMContentLoaded', ()=> {
-  revealStagger(panels[0]);
-  // if URL has hash like #p2 open it
-  const hash = window.location.hash;
-  if(hash && hash.startsWith('#p')){
-    const idx = parseInt(hash.slice(2));
-    if(!isNaN(idx) && idx >= 0 && idx < panels.length) setActive(idx);
+refreshAllBtn.addEventListener('click', async () => {
+  cache = {};
+  showSpinner('global', true);
+  // reload active tab after clearing
+  try {
+    await activateTab(activeTab);
+  } finally {
+    showSpinner('global', false);
   }
 });
+
+/* ----- Init ----- */
+(function init(){
+  renderTabs();
+  // activate the first tab (default)
+  activateTab(activeTab);
+})();
 </script>
 </body>
 </html>

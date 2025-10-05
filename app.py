@@ -14,7 +14,7 @@ def view_sun():
 def view_mercury():
     return render_template('info-mercury.html')
 
-@app.route('/view/Earth')
+@app.route('/view/Venus')
 def view_venus():
     return render_template('info-earth.html')
 
