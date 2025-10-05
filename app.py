@@ -49,7 +49,7 @@ def museum():
 
 @app.route('/comparator')
 def comparador():
-    return render_template('Comparador.html')
+    return render_template('comparador.html')
 
 if __name__ == '__main__':
     app.run(debug=True)
