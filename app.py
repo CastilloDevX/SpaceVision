@@ -45,6 +45,11 @@ def view_earth():
 @app.route('/museum')
 def museum():
     return render_template('museum.html')
+    
+
+@app.route('/comparador')
+def comparador():
+    return render_template('Comparador.html')
 
 if __name__ == '__main__':
     app.run(debug=True)

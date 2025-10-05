@@ -1,0 +1,871 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Comparador Espacial — SpaceVision</title>
+  <!-- Tailwind (CDN) para estilos modernos -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* ===== Estilos extra (no cubiertos por Tailwind) ===== */
+    :root{
+      --panel-bg: #0b1220; /* pizarra-cósmica */
+      --panel-br: #1f2a44;
+      --accent: #58a6ff; /* azul NASA-ish */
+      --accent-2: #22d3ee; /* cian para overlays */
+      --grid-color: rgba(148,163,184,0.25); /* slate-400 atenuado */
+    }
+
+    /* Canvas responsive contenedor */
+    .viewport{
+      position: relative;
+      background: radial-gradient(1200px 500px at 20% 0%, rgba(88,166,255,.12), transparent 60%),
+                  radial-gradient(900px 400px at 80% 100%, rgba(34,211,238,.12), transparent 60%),
+                  #020617; /* slate-950 */
+      border: 1px solid var(--panel-br);
+      border-radius: 1rem; /* 2xl */
+      overflow: hidden;
+      user-select: none;
+    }
+
+    canvas{ display:block; }
+
+    /* Indicador de enlace (sync) entre visores */
+    .link-on{ filter: drop-shadow(0 0 8px rgba(88,166,255,.6)); }
+
+    /* Slider de corte (wipe) para modo Overlay */
+    .wipe-handle{
+      position: absolute; top:0; bottom:0; width: 2px; background: var(--accent);
+      box-shadow: 0 0 0 1px rgba(88,166,255,.5), 0 0 0 3px rgba(88,166,255,.25);
+      pointer-events: none;
+    }
+    .wipe-grabber{ position:absolute; top:50%; left:-10px; transform:translateY(-50%);
+      width:20px; height:20px; border-radius:999px; background: var(--accent);
+      border: 2px solid #0b1220; box-shadow: 0 8px 24px rgba(2,6,23,.5);
+    }
+
+    /* Tooltip minimal */
+    .tip{ position:absolute; transform: translate(-50%, -140%); background:#0b1220; color:#cbd5e1;
+      padding:.25rem .5rem; border:1px solid var(--panel-br); border-radius:.5rem; font-size:.75rem; white-space:nowrap; }
+
+    /* Magnifier (lupa) */
+    .loupe{ position:absolute; width:160px; height:160px; border-radius:999px; overflow:hidden; border:2px solid var(--accent-2); box-shadow:0 6px 30px rgba(34,211,238,.25); pointer-events:none; display:none; }
+
+    /* Toggle chiclet */
+    .toggle { --w: 48px; --h: 28px; width:var(--w); height:var(--h); border-radius:999px; background:#1f2937; position:relative; border:1px solid #334155; cursor:pointer; }
+    .toggle i{ position:absolute; width:22px; height:22px; top:3px; left:3px; background:white; border-radius:999px; transition:transform .2s ease; }
+    .toggle[data-on="true"]{ background:#0ea5e9; }
+    .toggle[data-on="true"] i{ transform: translateX(calc(var(--w) - 26px)); }
+
+    /* Botón redondo flotante (para ayuda) */
+    .fab { position:fixed; right:20px; bottom:20px; width:56px; height:56px; border-radius:999px; display:grid; place-items:center; background:linear-gradient(135deg, #60a5fa, #22d3ee); color:#00111a; box-shadow:0 10px 30px rgba(2,6,23,.6); border:1px solid rgba(255,255,255,.25); }
+
+    /* Etiquetas mini */
+    .pill{ font-size:.625rem; letter-spacing:.02em; background: rgba(88,166,255,.15); border:1px solid rgba(88,166,255,.35); padding:.15rem .4rem; border-radius:.4rem; }
+
+    /* Barras */
+    .toolbar{ background: linear-gradient(180deg, rgba(15,23,42,.95), rgba(2,6,23,.95)); border:1px solid var(--panel-br); border-radius:.75rem; }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 antialiased">
+  <!-- ===== Encabezado ===== -->
+  <header class="max-w-7xl mx-auto px-4 sm:px-6 py-4">
+    <div class="flex flex-wrap items-center gap-3">
+      <div class="flex items-center gap-3">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none"><path d="M12 2a10 10 0 100 20 10 10 0 000-20Zm.5 3.5a6.5 6.5 0 016.5 6.5c0 4.694-5.5 3.5-7 5.5-2-2.5-6-1-6-5a6 6 0 016-7Z" fill="#58a6ff"/></svg>
+        <h1 class="text-2xl md:text-3xl font-semibold tracking-tight">Comparador Espacial<span class="pill align-middle ml-2">SpaceVision</span></h1>
+      </div>
+      <div class="ml-auto flex items-center gap-3 text-slate-300">
+        <span class="hidden md:inline opacity-75">Dos modos de visualización:</span>
+        <div class="inline-flex bg-slate-900/70 border border-slate-700 rounded-xl overflow-hidden">
+          <button id="btnModeSide" class="px-3 py-2 text-sm hover:bg-slate-800/70 data-[active=true]:bg-slate-800/80" data-active="true">Separado</button>
+          <button id="btnModeOverlay" class="px-3 py-2 text-sm hover:bg-slate-800/70">Capa sobre capa</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ===== Layout principal ===== -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 pb-24 grid grid-cols-1 lg:grid-cols-12 gap-6">
+    <!-- Panel de control -->
+    <aside class="lg:col-span-4 xl:col-span-3 space-y-4">
+      <section class="toolbar p-4">
+        <h2 class="text-lg font-medium mb-3">Imágenes</h2>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-sm mb-1">Imagen A</label>
+            <input id="fileA" type="file" accept="image/*" class="block w-full text-sm file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border file:border-slate-600 file:bg-slate-800 file:text-slate-100 file:hover:bg-slate-700/80"/>
+            <input id="urlA" type="url" placeholder="o URL…" class="mt-2 w-full bg-slate-900 border border-slate-700 rounded-md px-2.5 py-1.5 text-sm"/>
+          </div>
+          <div>
+            <label class="block text-sm mb-1">Imagen B</label>
+            <input id="fileB" type="file" accept="image/*" class="block w-full text-sm file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border file:border-slate-600 file:bg-slate-800 file:text-slate-100 file:hover:bg-slate-700/80"/>
+            <input id="urlB" type="url" placeholder="o URL…" class="mt-2 w-full bg-slate-900 border border-slate-700 rounded-md px-2.5 py-1.5 text-sm"/>
+          </div>
+        </div>
+        <div class="mt-3">
+          <label class="block text-sm mb-1">Presets oficiales (NASA)</label>
+          <select id="preset" class="w-full bg-slate-900 border border-slate-700 rounded-md px-2.5 py-2 text-sm">
+            <option value="">— Elegir par de comparación —</option>
+            <option value="full2025_vs_full2016">Luna llena 2025 (LRO render) vs Luna llena 2016</option>
+            <option value="mosaic2018_vs_full2025">Mosaico NAC 2018 (LRO) vs Luna llena 2025</option>
+            <option value="tycho_oblicua_vs_nadir">Tycho: pico central oblicuo vs vista cenital</option>
+          </select>
+        </div>
+        <div class="mt-4 flex items-center gap-3">
+          <button id="btnLoadInputs" class="px-3 py-2 bg-sky-600 hover:bg-sky-500 rounded-md text-sm font-medium">Cargar URLs</button>
+          <button id="btnReset" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 rounded-md text-sm">Reiniciar vista</button>
+        </div>
+        <p class="text-xs text-slate-400 mt-2">Sugerencia: para análisis de píxeles (bordes/diferencias) las imágenes deben permitir CORS o cargarse desde archivo local.</p>
+      </section>
+
+      <section class="toolbar p-4">
+        <h2 class="text-lg font-medium mb-3">Herramientas</h2>
+        <div class="grid grid-cols-2 gap-3">
+          <div class="col-span-2 flex items-center justify-between">
+            <span class="text-sm">Enlazar visores (zoom/pan)</span>
+            <div id="toggleSync" class="toggle" role="switch" aria-label="Enlazar" data-on="true"><i></i></div>
+          </div>
+          <div class="col-span-2 flex items-center justify-between">
+            <span class="text-sm">Rejilla</span>
+            <div id="toggleGrid" class="toggle" role="switch" aria-label="Rejilla" data-on="false"><i></i></div>
+          </div>
+          <div class="col-span-2 flex items-center justify-between">
+            <span class="text-sm">Lupa (mantén Alt)</span>
+            <div id="toggleLoupe" class="toggle" role="switch" aria-label="Lupa" data-on="true"><i></i></div>
+          </div>
+          <div class="col-span-2 border-t border-slate-700 pt-3"></div>
+          <div class="col-span-2 flex items-center justify-between">
+            <span class="text-sm">Detección de bordes (Sobel)</span>
+            <div id="toggleEdges" class="toggle" role="switch" aria-label="Bordes" data-on="false"><i></i></div>
+          </div>
+          <div>
+            <label class="block text-xs mb-1">Intensidad bordes</label>
+            <input id="edgesStrength" type="range" min="0" max="3" step="0.05" value="1" class="w-full"/>
+          </div>
+          <div>
+            <label class="block text-xs mb-1">Transparencia bordes</label>
+            <input id="edgesAlpha" type="range" min="0" max="1" step="0.05" value="0.75" class="w-full"/>
+          </div>
+          <div class="col-span-2 border-t border-slate-700 pt-3"></div>
+          <div class="col-span-2 flex items-center justify-between">
+            <span class="text-sm">Diferencias (A vs B)</span>
+            <div id="toggleDiff" class="toggle" role="switch" aria-label="Diferencias" data-on="false"><i></i></div>
+          </div>
+          <div>
+            <label class="block text-xs mb-1">Umbral (Δ)</label>
+            <input id="diffThreshold" type="range" min="0" max="128" value="24" class="w-full"/>
+          </div>
+          <div>
+            <label class="block text-xs mb-1">Ganancia calor</label>
+            <input id="diffGain" type="range" min="1" max="6" step="0.1" value="2.5" class="w-full"/>
+          </div>
+        </div>
+      </section>
+
+      <section class="toolbar p-4">
+        <h2 class="text-lg font-medium mb-3">Ajustes visuales</h2>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs mb-1">Brillo</label>
+            <input id="brightness" type="range" min="0.5" max="1.5" step="0.01" value="1" class="w-full"/>
+          </div>
+          <div>
+            <label class="block text-xs mb-1">Contraste</label>
+            <input id="contrast" type="range" min="0.5" max="1.5" step="0.01" value="1" class="w-full"/>
+          </div>
+          <div>
+            <label class="block text-xs mb-1">Gamma</label>
+            <input id="gamma" type="range" min="0.5" max="1.8" step="0.01" value="1" class="w-full"/>
+          </div>
+          <div>
+            <label class="block text-xs mb-1">Opacidad (B en overlay)</label>
+            <input id="overlayAlpha" type="range" min="0" max="1" step="0.02" value="0.65" class="w-full"/>
+          </div>
+        </div>
+        <div class="mt-3 flex items-center gap-2">
+          <button id="btnFit" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 rounded-md text-sm">Ajustar a ventana</button>
+          <button id="btn100" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 rounded-md text-sm">100%</button>
+          <button id="btnExport" class="px-3 py-2 bg-emerald-600 hover:bg-emerald-500 rounded-md text-sm">Exportar PNG</button>
+        </div>
+      </section>
+
+      <section class="text-xs text-slate-400 leading-relaxed p-2">
+        <p>Créditos imágenes por defecto: NASA/GSFC/SVS, LRO/LROC/LOLA. Ver comentarios al final del archivo para las URLs.</p>
+      </section>
+    </aside>
+
+    <!-- Área de visualización -->
+    <section id="displayArea" class="lg:col-span-8 xl:col-span-9 space-y-4">
+      <!-- Barra herramientas superior -->
+      <div class="toolbar p-3 flex flex-wrap items-center gap-3">
+        <div class="flex items-center gap-2">
+          <button id="btnZoomIn" class="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 rounded-md text-sm">+ Zoom</button>
+          <button id="btnZoomOut" class="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 rounded-md text-sm">− Zoom</button>
+          <span id="zoomReadout" class="text-sm text-slate-300 ml-1">100%</span>
+        </div>
+        <div class="ml-auto flex items-center gap-2">
+          <span class="text-sm text-slate-400">Arrastra para mover • Rueda para zoom • Alt = Lupa</span>
+        </div>
+      </div>
+
+      <!-- Modo SEPARADO (2 visores) -->
+      <div id="modeSide" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="viewport" id="vpA" aria-label="Visor A">
+          <canvas id="canvasA"></canvas>
+          <div class="loupe" id="loupeA"></div>
+        </div>
+        <div class="viewport" id="vpB" aria-label="Visor B">
+          <canvas id="canvasB"></canvas>
+          <div class="loupe" id="loupeB"></div>
+        </div>
+      </div>
+
+      <!-- Modo OVERLAY (un solo lienzo) -->
+      <div id="modeOverlay" class="hidden">
+        <div class="viewport" id="vpOverlay" aria-label="Visor Overlay">
+          <canvas id="canvasOverlay"></canvas>
+          <div id="wipeHandle" class="wipe-handle" style="left:50%"><div class="wipe-grabber"></div></div>
+          <div class="loupe" id="loupeO"></div>
+          <div id="overlayTip" class="tip" style="left:50%; top: 10px; display:none;">Arrastra para deslizar A/B</div>
+        </div>
+        <div class="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div>
+            <label class="block text-xs mb-1">Posición del corte (A↔B)</label>
+            <input id="wipe" type="range" min="0" max="1" step="0.01" value="0.5" class="w-full"/>
+          </div>
+          <div>
+            <label class="block text-xs mb-1">Mezcla (composición)</label>
+            <select id="blendMode" class="w-full bg-slate-900 border border-slate-700 rounded-md px-2.5 py-2 text-sm">
+              <option value="normal">normal</option>
+              <option value="multiply">multiply</option>
+              <option value="screen">screen</option>
+              <option value="overlay">overlay</option>
+              <option value="lighten">lighten</option>
+              <option value="darken">darken</option>
+              <option value="difference">difference</option>
+              <option value="exclusion">exclusion</option>
+              <option value="color-burn">color-burn</option>
+              <option value="color-dodge">color-dodge</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs mb-1">Opacidad de B</label>
+            <input id="alphaB" type="range" min="0" max="1" step="0.02" value="0.65" class="w-full"/>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Botón de ayuda -->
+  <button id="btnHelp" class="fab" title="Ayuda">❓</button>
+
+  <!-- ===== Script principal ===== -->
+  <script>
+  /**
+   * Comparador Lunar — NASA
+   * --------------------------------------------------------------
+   * Características clave:
+   *  - Dos modos: visores separados y overlay (capa sobre capa con wipe y blend).
+   *  - Zoom/pan (rueda + arrastre) con opción de sincronización.
+   *  - Rejilla, lupa (Alt), y lectura de zoom.
+   *  - Detección de bordes (Sobel) y mapa de diferencias (A vs B) con heatmap.
+   *  - Ajustes de brillo/contraste/gamma (shader CPU simple sobre el dibujado).
+   *  - Carga desde archivo o URL + presets con imágenes oficiales de NASA SVS.
+   *  - Exportación de PNG en modo overlay.
+   *  - Degradado visual sutil estilo "mission control".
+   *
+   * Notas técnicas importantes:
+   *  - Para análisis de píxeles, el lienzo debe NO estar "tainted" por CORS. Algunas
+   *    imágenes remotas (aunque públicas) pueden no incluir cabecera CORS. Si ocurre,
+   *    se desactiva lectura de píxeles y se muestra advertencia.
+   */
+
+  // ================= Utilidades de carga =================
+  const NASA = {
+    // URLs oficiales (SVS/GSFC) — pueden cambiar con el tiempo en el servidor.
+    full2025: 'https://svs.gsfc.nasa.gov/vis/a000000/a005000/a005048/phase_full.1571_print.jpg', // 2025 full moon
+    full2016: 'https://svs.gsfc.nasa.gov/vis/a000000/a004200/a004236/phase_full.0815_preview.jpg', // 2016 full moon
+    mosaic2018: 'https://svs.gsfc.nasa.gov/vis/a000000/a005000/a005001/moon_mosaic_print.jpg',      // LRO NAC mosaic 2018
+    tychoOblique: 'https://svs.gsfc.nasa.gov/vis/a000000/a004200/a004220/tycho_central_peak_wide_print.jpg',
+    tychoNadir:   'https://svs.gsfc.nasa.gov/vis/a000000/a004200/a004220/tycho_central_peak_nadir_print.jpg'
+  };
+
+  function loadImage(src){
+    return new Promise((resolve, reject)=>{
+      const img = new Image();
+      // Intento de CORS: si el servidor lo permite, el canvas no quedará tainted
+      img.crossOrigin = 'anonymous';
+      img.onload = ()=> resolve(img);
+      img.onerror = (e)=> reject(new Error('No se pudo cargar la imagen: '+src));
+      img.src = src;
+    });
+  }
+
+  function fileToDataURL(file){
+    return new Promise((resolve,reject)=>{
+      const reader = new FileReader();
+      reader.onload = ()=> resolve(reader.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
+  // ============== Estado global del visor ===============
+  const state = {
+    mode: 'side', // 'side' | 'overlay'
+    sync: true,
+    grid: false,
+    loupe: true,
+    brightness: 1,
+    contrast: 1,
+    gamma: 1,
+    overlayAlpha: 0.65,
+    blendMode: 'normal',
+    wipe: 0.5,
+    edgesOn: false,
+    edgesStrength: 1,
+    edgesAlpha: 0.75,
+    diffOn: false,
+    diffThreshold: 24,
+    diffGain: 2.5,
+    // Visores
+    A: { img: null, zoom: 1, x: 0, y: 0, edges: null, edgesReady:false, tainted:false },
+    B: { img: null, zoom: 1, x: 0, y: 0, edges: null, edgesReady:false, tainted:false },
+    O: { zoom: 1, x: 0, y: 0, diff: null, diffReady:false }
+  };
+
+  // Canvases y contextos
+  const cvsA = document.getElementById('canvasA');
+  const ctxA = cvsA.getContext('2d');
+  const cvsB = document.getElementById('canvasB');
+  const ctxB = cvsB.getContext('2d');
+  const cvsO = document.getElementById('canvasOverlay');
+  const ctxO = cvsO.getContext('2d');
+
+  const vpA = document.getElementById('vpA');
+  const vpB = document.getElementById('vpB');
+  const vpO = document.getElementById('vpOverlay');
+  const loupeA = document.getElementById('loupeA');
+  const loupeB = document.getElementById('loupeB');
+  const loupeO = document.getElementById('loupeO');
+  const wipeHandle = document.getElementById('wipeHandle');
+
+  // =================== Layout / Resize ===================
+  function resizeCanvasToParent(canvas){
+    const parent = canvas.parentElement;
+    const dpr = window.devicePixelRatio || 1;
+    const w = parent.clientWidth;
+    const h = Math.max(320, Math.floor(w * 0.65)); // relación razonable
+    canvas.width = Math.floor(w * dpr);
+    canvas.height = Math.floor(h * dpr);
+    canvas.style.width = w+'px';
+    canvas.style.height = h+'px';
+    const ctx = canvas.getContext('2d');
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+  }
+
+  function resizeAll(){
+    [cvsA,cvsB,cvsO].forEach(c=> c && resizeCanvasToParent(c));
+    draw();
+  }
+  window.addEventListener('resize', resizeAll);
+
+  // ================ Dibujado común =======================
+  function applyVisualCtx(ctx){
+    // Brillo/contraste/gamma se aplican vía shader CPU simple al final cuando haga falta leer píxel.
+    // Para previsualización rápida, usamos filtros de canvas como aproximación.
+    const b = state.brightness; const c = state.contrast; const g = state.gamma;
+    ctx.filter = `brightness(${b}) contrast(${c}) saturate(1) grayscale(0)`; // gamma no está en filter; lo aplicamos en CPU cuando se analice
+  }
+
+  function drawGrid(ctx, w, h, step){
+    ctx.save();
+    ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--grid-color') || 'rgba(148,163,184,.25)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    for(let x=0; x<=w; x+=step){ ctx.moveTo(x+0.5,0); ctx.lineTo(x+0.5,h); }
+    for(let y=0; y<=h; y+=step){ ctx.moveTo(0,y+0.5); ctx.lineTo(w,y+0.5); }
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawEdgesOverlay(ctx, cache, alpha=0.75){
+    if(!cache) return;
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.drawImage(cache, 0, 0, ctx.canvas.width, ctx.canvas.height);
+    ctx.restore();
+  }
+
+  function computeGamma(v, g){
+    return Math.pow(v, 1/g); // gamma simple
+  }
+
+  // ============= Sobel (bordes) =============
+  function sobelFromCanvas(sourceCanvas, strength=1){
+    // Devuelve un canvas del mismo tamaño con un mapa de bordes coloreado cian
+    const w = sourceCanvas.width, h = sourceCanvas.height;
+    const sctx = sourceCanvas.getContext('2d');
+    let src;
+    try{
+      src = sctx.getImageData(0,0,w,h);
+    }catch(e){
+      return null; // tainted
+    }
+    const out = new OffscreenCanvas(w,h); // si no soporta, fallback a canvas normal
+    const ctx = out.getContext('2d');
+    const dst = ctx.createImageData(w,h);
+
+    // Kernels Sobel
+    const gx = [-1,0,1, -2,0,2, -1,0,1];
+    const gy = [-1,-2,-1, 0,0,0, 1,2,1];
+
+    const d = src.data, o = dst.data;
+    const gamma = state.gamma;
+
+    for(let y=1; y<h-1; y++){
+      for(let x=1; x<w-1; x++){
+        let i = (y*w + x) * 4;
+        // luminancia simple (promedio)
+        const idx = (yy,xx)=> ((yy)*w + (xx)) * 4;
+        let px = 0, py = 0, k=0;
+        for(let j=-1;j<=1;j++){
+          for(let i2=-1;i2<=1;i2++){
+            const p = idx(y+j, x+i2);
+            const lum = computeGamma((d[p]+d[p+1]+d[p+2]) / (3*255), gamma);
+            const val = lum * 255;
+            px += gx[k]*val; py += gy[k]*val; k++;
+          }
+        }
+        let mag = Math.sqrt(px*px + py*py) * strength;
+        if(mag>255) mag=255;
+        o[i] = 20;       // rojo bajo
+        o[i+1] = 255;    // verde alto → cian con azul
+        o[i+2] = 255;    // azul alto
+        o[i+3] = mag;    // alpha proporcional a magnitud
+      }
+    }
+    ctx.putImageData(dst,0,0);
+    // Convertimos a HTMLCanvasElement si OffscreenCanvas
+    if(out.convertToBlob){
+      // Crear canvas visible temporal
+      const cnv = document.createElement('canvas');
+      cnv.width = w; cnv.height = h;
+      cnv.getContext('2d').drawImage(out,0,0);
+      return cnv;
+    }
+    return out;
+  }
+
+  // ============= Diferencias (A vs B) =============
+  function differenceHeatmapCanvas(cnvA, cnvB, threshold=24, gain=2.5){
+    const w = Math.min(cnvA.width, cnvB.width);
+    const h = Math.min(cnvA.height, cnvB.height);
+    const aCtx = cnvA.getContext('2d');
+    const bCtx = cnvB.getContext('2d');
+    let a, b;
+    try{
+      a = aCtx.getImageData(0,0,w,h);
+      b = bCtx.getImageData(0,0,w,h);
+    }catch(e){ return null; }
+
+    const out = new OffscreenCanvas(w,h); const octx = out.getContext('2d');
+    const dst = octx.createImageData(w,h);
+    const ad = a.data, bd = b.data, od = dst.data;
+    const gamma = state.gamma;
+
+    for(let i=0;i<ad.length;i+=4){
+      const la = computeGamma((ad[i]+ad[i+1]+ad[i+2])/(3*255), gamma);
+      const lb = computeGamma((bd[i]+bd[i+1]+bd[i+2])/(3*255), gamma);
+      const diff = Math.abs(la - lb) * 255 * gain;
+      // Umbral suave
+      const m = Math.max(0, diff - threshold) / (255 - threshold);
+      // Mapa de calor sencillo: azul→cian→verde→amarillo→rojo
+      const r = Math.min(255, Math.max(0, (m-0.5)*2*255));
+      const g = Math.min(255, Math.max(0, (1-Math.abs(m-0.5)*2)*255));
+      const bl= Math.min(255, Math.max(0, (0.5-m)*2*255));
+      od[i] = r; od[i+1]=g; od[i+2]=bl; od[i+3] = Math.min(200, (m*255));
+    }
+    octx.putImageData(dst,0,0);
+    if(out.convertToBlob){
+      const cnv = document.createElement('canvas');
+      cnv.width=w; cnv.height=h; cnv.getContext('2d').drawImage(out,0,0);
+      return cnv;
+    }
+    return out;
+  }
+
+  // ============ Render de cada visor ============
+  function clear(ctx){ ctx.save(); ctx.setTransform(1,0,0,1,0,0); ctx.clearRect(0,0,ctx.canvas.width,ctx.canvas.height); ctx.restore(); }
+
+  function renderViewport(ctx, view, withGrid){
+    clear(ctx);
+    if(!view.img) return;
+    applyVisualCtx(ctx);
+    const {img, zoom, x, y} = view;
+    const cw = ctx.canvas.clientWidth; const ch = ctx.canvas.clientHeight;
+    const iw = img.naturalWidth; const ih = img.naturalHeight;
+
+    // Centro del canvas
+    ctx.save();
+    ctx.translate(cw/2 + x, ch/2 + y);
+    ctx.scale(zoom, zoom);
+    ctx.drawImage(img, -iw/2, -ih/2);
+    ctx.restore();
+
+    if(withGrid && state.grid){ drawGrid(ctx, ctx.canvas.clientWidth, ctx.canvas.clientHeight, 80); }
+  }
+
+  function renderOverlay(ctx){
+    clear(ctx);
+    if(!state.A.img || !state.B.img) return;
+    applyVisualCtx(ctx);
+    const cw = ctx.canvas.clientWidth; const ch = ctx.canvas.clientHeight;
+
+    // Transform común
+    ctx.save();
+    ctx.translate(cw/2 + state.O.x, ch/2 + state.O.y);
+    ctx.scale(state.O.zoom, state.O.zoom);
+
+    const ia = state.A.img, ib = state.B.img;
+    const iw = Math.max(ia.naturalWidth, ib.naturalWidth);
+    const ih = Math.max(ia.naturalHeight, ib.naturalHeight);
+
+    // Dibuja A completa
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.drawImage(ia, -ia.naturalWidth/2, -ia.naturalHeight/2);
+
+    // Ajuste de mezcla para B
+    ctx.globalCompositeOperation = state.blendMode;
+    ctx.globalAlpha = state.overlayAlpha;
+
+    // Wipe: recorte por proporción horizontal
+    const cut = Math.floor((state.wipe) * cw);
+    ctx.save();
+    // Recorte en coordenadas de pantalla: usamos un path en espacio de pantalla
+    ctx.setTransform(1,0,0,1,0,0);
+    ctx.beginPath(); ctx.rect(cut, 0, cw-cut, ch); ctx.clip();
+    // Volvemos a la transform
+    ctx.translate(cw/2 + state.O.x, ch/2 + state.O.y); ctx.scale(state.O.zoom, state.O.zoom);
+    ctx.drawImage(ib, -ib.naturalWidth/2, -ib.naturalHeight/2);
+    ctx.restore();
+
+    ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+    ctx.restore();
+
+    // Rejilla en overlay
+    if(state.grid){ drawGrid(ctx, cw, ch, 80); }
+
+    // Bordes en overlay (se dibujan encima)
+    if(state.edgesOn){
+      const cacheA = state.A.edgesCacheOverlay; const cacheB = state.B.edgesCacheOverlay;
+      if(cacheA && cacheB){
+        // Dibujar A a la izquierda, B a la derecha, con alpha configurable
+        ctx.save();
+        ctx.globalAlpha = state.edgesAlpha;
+        // A
+        ctx.drawImage(cacheA, 0, 0, cw*state.wipe, ch, 0,0, cw*state.wipe, ch);
+        // B
+        ctx.drawImage(cacheB, cw*state.wipe, 0, cw*(1-state.wipe), ch, cw*state.wipe,0, cw*(1-state.wipe), ch);
+        ctx.restore();
+      }
+    }
+
+    // Diferencias (heatmap)
+    if(state.diffOn && state.O.diff){
+      ctx.save();
+      ctx.globalAlpha = 0.75;
+      ctx.drawImage(state.O.diff, 0, 0, cw, ch);
+      ctx.restore();
+    }
+
+    // Actualizar handle visual
+    document.getElementById('wipeHandle').style.left = (state.wipe*100)+'%';
+  }
+
+  function draw(){
+    if(state.mode==='side'){
+      renderViewport(ctxA, state.A, true);
+      renderViewport(ctxB, state.B, true);
+      document.getElementById('zoomReadout').textContent = Math.round((state.A.zoom)*100)+'%';
+    }else{
+      renderOverlay(ctxO);
+      document.getElementById('zoomReadout').textContent = Math.round((state.O.zoom)*100)+'%';
+    }
+  }
+
+  // ============= Interacción (zoom/pan) =============
+  function attachNavHandlers(viewportEl, canvas, viewKey){
+    let dragging = false; let lastX=0, lastY=0; let pointers = new Map();
+
+    function getView(){ return viewKey==='A'? state.A : viewKey==='B'? state.B : state.O; }
+
+    viewportEl.addEventListener('pointerdown', (e)=>{
+      dragging = true; lastX = e.clientX; lastY = e.clientY; canvas.setPointerCapture(e.pointerId);
+      pointers.set(e.pointerId, {x:e.clientX, y:e.clientY});
+    });
+    viewportEl.addEventListener('pointerup', (e)=>{ dragging=false; pointers.delete(e.pointerId); canvas.releasePointerCapture?.(e.pointerId); });
+    viewportEl.addEventListener('pointercancel', (e)=>{ dragging=false; pointers.delete(e.pointerId); });
+
+    viewportEl.addEventListener('pointermove', (e)=>{
+      const v = getView();
+      if(pointers.size===2){
+        // Pinch to zoom
+        const pts = [...pointers.values()];
+        const prev = Math.hypot(pts[0].x-pts[1].x, pts[0].y-pts[1].y);
+        pointers.set(e.pointerId, {x:e.clientX, y:e.clientY});
+        const pts2 = [...pointers.values()];
+        const now = Math.hypot(pts2[0].x-pts2[1].x, pts2[0].y-pts2[1].y);
+        const ratio = now/prev;
+        v.zoom = clamp(v.zoom * ratio, 0.1, 20);
+        draw();
+        return;
+      }
+      if(!dragging) return;
+      const dx = e.clientX - lastX; const dy = e.clientY - lastY; lastX = e.clientX; lastY = e.clientY;
+      v.x += dx; v.y += dy;
+      if(state.sync && (viewKey==='A'||viewKey==='B') && state.mode==='side'){
+        const other = viewKey==='A'? state.B : state.A; other.x += dx; other.y += dy;
+      }
+      draw();
+    });
+
+    viewportEl.addEventListener('wheel', (e)=>{
+      e.preventDefault();
+      const v = getView();
+      const factor = e.deltaY>0? 0.9 : 1.1;
+      const prevZoom = v.zoom;
+      v.zoom = clamp(v.zoom * factor, 0.1, 20);
+      // Zoom hacia el puntero: ajusta offset para mantener punto
+      const rect = canvas.getBoundingClientRect();
+      const mx = e.clientX - rect.left - rect.width/2 - v.x;
+      const my = e.clientY - rect.top - rect.height/2 - v.y;
+      v.x -= mx*(v.zoom/prevZoom - 1);
+      v.y -= my*(v.zoom/prevZoom - 1);
+      if(state.sync && (viewKey==='A'||viewKey==='B') && state.mode==='side'){
+        const other = viewKey==='A'? state.B : state.A;
+        other.zoom = v.zoom; other.x = v.x; other.y = v.y;
+      }
+      draw();
+    }, {passive:false});
+
+    // Lupa con Alt
+    viewportEl.addEventListener('mousemove', (e)=>{
+      if(!state.loupe || !e.altKey) return hideLoupe(viewKey);
+      const loupe = viewKey==='A'? loupeA : viewKey==='B'? loupeB : loupeO;
+      showLoupe(loupe, canvas, e, getView(), viewKey);
+    });
+    viewportEl.addEventListener('mouseleave', ()=> hideLoupe(viewKey));
+  }
+
+  function clamp(v, a, b){ return Math.min(b, Math.max(a, v)); }
+
+  function showLoupe(loupe, canvas, e, view, key){
+    if(!loupe) return;
+    const rect = canvas.getBoundingClientRect();
+    loupe.style.display = 'block';
+    loupe.style.left = (e.clientX - rect.left - 80)+'px';
+    loupe.style.top  = (e.clientY - rect.top - 80)+'px';
+
+    // Dibujar dentro de la lupa
+    const cnv = loupe._cnv || (loupe._cnv = document.createElement('canvas'));
+    cnv.width = 160; cnv.height = 160;
+    const lctx = cnv.getContext('2d');
+    lctx.clearRect(0,0,160,160);
+
+    if(key==='O'){
+      // Render overlay en miniatura zoom x2
+      const backup = { ...state.O };
+      const zx = view.zoom; const ox = view.x; const oy=view.y;
+      state.O.zoom = Math.min(20, zx*2); state.O.x = ox - (e.offsetX - canvas.clientWidth/2 - ox)/2; state.O.y = oy - (e.offsetY - canvas.clientHeight/2 - oy)/2;
+      const temp = document.createElement('canvas'); temp.width=160; temp.height=160; temp.getContext('2d').scale(160/canvas.clientWidth, 160/canvas.clientHeight);
+      const prev = cvsO; const prevCtx = ctxO;
+      const ctxTemp = temp.getContext('2d');
+      // Renderizamos sobre temp usando la función de overlay adaptada (rápido)
+      const savedCanvas = ctxO.canvas; ctxO.canvas = temp; renderOverlay(ctxTemp); ctxO.canvas = savedCanvas;
+      lctx.drawImage(temp,0,0);
+      state.O = backup;
+    } else {
+      const viewImg = key==='A'? state.A.img : state.B.img;
+      if(!viewImg) return;
+      lctx.save();
+      lctx.translate(80,80); lctx.scale(view.zoom*2, view.zoom*2);
+      // Centro relativo bajo el cursor
+      const mx = e.offsetX - canvas.clientWidth/2 - view.x;
+      const my = e.offsetY - canvas.clientHeight/2 - view.y;
+      lctx.translate(-mx, -my);
+      lctx.drawImage(viewImg, -viewImg.naturalWidth/2, -viewImg.naturalHeight/2);
+      lctx.restore();
+    }
+    loupe.style.background = `url(${cnv.toDataURL()}) center/cover no-repeat`;
+  }
+  function hideLoupe(key){ const l = key==='A'? loupeA : key==='B'? loupeB : loupeO; if(l) l.style.display='none'; }
+
+  // ============= UI wiring =============
+  document.getElementById('btnModeSide').addEventListener('click',()=>{ state.mode='side'; document.getElementById('modeSide').classList.remove('hidden'); document.getElementById('modeOverlay').classList.add('hidden'); setActiveMode(true); draw(); });
+  document.getElementById('btnModeOverlay').addEventListener('click',()=>{ state.mode='overlay'; document.getElementById('modeSide').classList.add('hidden'); document.getElementById('modeOverlay').classList.remove('hidden'); setActiveMode(false); draw(); });
+  function setActiveMode(side){ document.getElementById('btnModeSide').dataset.active = side; document.getElementById('btnModeOverlay').dataset.active = !side; }
+
+  // Toggles
+  bindToggle('toggleSync', (on)=> state.sync = on);
+  bindToggle('toggleGrid', (on)=> { state.grid = on; draw(); });
+  bindToggle('toggleLoupe', (on)=> state.loupe = on);
+  bindToggle('toggleEdges', (on)=> { state.edgesOn = on; draw(); });
+  bindToggle('toggleDiff', (on)=> { state.diffOn = on; draw(); });
+  function bindToggle(id, cb){ const el = document.getElementById(id); el.addEventListener('click',()=>{ const on = el.getAttribute('data-on')!=='true'; el.setAttribute('data-on', on); cb(on); }); }
+
+  // Sliders / inputs
+  const mapInput = (id, prop, fn)=> document.getElementById(id).addEventListener('input', (e)=>{ state[prop] = fn? fn(e.target.value) : +e.target.value; if(prop==='wipe'){ document.getElementById('overlayTip').style.display='block'; setTimeout(()=> document.getElementById('overlayTip').style.display='none', 900); } draw(); });
+  mapInput('edgesStrength','edgesStrength', v=>+v);
+  mapInput('edgesAlpha','edgesAlpha', v=>+v);
+  mapInput('diffThreshold','diffThreshold', v=>+v);
+  mapInput('diffGain','diffGain', v=>+v);
+  mapInput('brightness','brightness', v=>+v);
+  mapInput('contrast','contrast', v=>+v);
+  mapInput('gamma','gamma', v=>+v);
+  mapInput('overlayAlpha','overlayAlpha', v=>+v);
+  mapInput('alphaB','overlayAlpha', v=>+v);
+  mapInput('wipe','wipe', v=>+v);
+  document.getElementById('blendMode').addEventListener('change', (e)=>{ state.blendMode = e.target.value; draw(); });
+
+  document.getElementById('btnFit').addEventListener('click', fitAll);
+  document.getElementById('btn100').addEventListener('click', ()=>{ if(state.mode==='side'){ state.A.zoom=state.B.zoom=1; state.A.x=state.B.x=0; state.A.y=state.B.y=0; } else { state.O.zoom=1; state.O.x=state.O.y=0; } draw(); });
+
+  document.getElementById('btnZoomIn').addEventListener('click', ()=>{ if(state.mode==='side'){ state.A.zoom*=1.2; if(state.sync) state.B.zoom=state.A.zoom; } else { state.O.zoom*=1.2; } draw(); });
+  document.getElementById('btnZoomOut').addEventListener('click', ()=>{ if(state.mode==='side'){ state.A.zoom/=1.2; if(state.sync) state.B.zoom=state.A.zoom; } else { state.O.zoom/=1.2; } draw(); });
+
+  // Presets
+  document.getElementById('preset').addEventListener('change', async (e)=>{
+    const v = e.target.value; if(!v) return;
+    let a,b;
+    if(v==='full2025_vs_full2016'){ a = NASA.full2025; b = NASA.full2016; }
+    if(v==='mosaic2018_vs_full2025'){ a = NASA.mosaic2018; b = NASA.full2025; }
+    if(v==='tycho_oblicua_vs_nadir'){ a = NASA.tychoOblique; b = NASA.tychoNadir; }
+    await loadPair(a,b);
+    fitAll();
+  });
+
+  // Cargar desde inputs URL o archivos
+  document.getElementById('btnLoadInputs').addEventListener('click', async ()=>{
+    const ua = document.getElementById('urlA').value.trim();
+    const ub = document.getElementById('urlB').value.trim();
+    if(ua) await setImageFromURL('A', ua);
+    if(ub) await setImageFromURL('B', ub);
+    fitAll();
+  });
+
+  document.getElementById('fileA').addEventListener('change', async (e)=>{ const f = e.target.files?.[0]; if(f){ const url = await fileToDataURL(f); await setImageFromURL('A', url); fitAll(); } });
+  document.getElementById('fileB').addEventListener('change', async (e)=>{ const f = e.target.files?.[0]; if(f){ const url = await fileToDataURL(f); await setImageFromURL('B', url); fitAll(); } });
+
+  document.getElementById('btnReset').addEventListener('click', ()=>{ state.A.x=state.A.y=state.B.x=state.B.y=state.O.x=state.O.y=0; state.A.zoom=state.B.zoom=state.O.zoom=1; draw(); });
+
+  // Exportar (modo overlay)
+  document.getElementById('btnExport').addEventListener('click', ()=>{
+    if(state.mode!=='overlay'){ alert('Cambia a "Capa sobre capa" para exportar la mezcla.'); return; }
+    const data = cvsO.toDataURL('image/png');
+    const a = document.createElement('a'); a.href=data; a.download='comparador-lunar.png'; a.click();
+  });
+
+  // Ayuda
+  document.getElementById('btnHelp').addEventListener('click', ()=>{
+    alert('🛰️ Consejos rápidos:\n\n• Usa los presets para probar comparativas oficiales de la NASA.\n• Alt + mover el ratón activa la lupa.\n• Activa “Diferencias (A vs B)” para un mapa de cambios.\n• En overlay, mueve el deslizador para cortar A/B y prueba distintos blend modes.\n• Si las funciones de análisis no aparecen, puede ser por CORS; carga las imágenes desde tu equipo.');
+  });
+
+  // ============= Carga y caches de análisis =============
+  async function setImageFromURL(key, url){
+    const img = await loadImage(url);
+    state[key].img = img; state[key].edges = null; state[key].edgesReady=false; state[key].tainted=false;
+    // Intento de leer 1 píxel para comprobar CORS
+    const test = document.createElement('canvas'); test.width=img.naturalWidth; test.height=img.naturalHeight; const tctx=test.getContext('2d'); tctx.drawImage(img,0,0);
+    try{ tctx.getImageData(0,0,1,1); }catch(e){ state[key].tainted=true; }
+    prepareAnalysisCaches();
+    draw();
+  }
+
+  async function loadPair(urlA, urlB){ await setImageFromURL('A', urlA); await setImageFromURL('B', urlB); }
+
+  function fitView(view, canvas){
+    if(!view.img) return;
+    const cw = canvas.clientWidth, ch = canvas.clientHeight;
+    const iw = view.img.naturalWidth, ih = view.img.naturalHeight;
+    const s = Math.min(cw/iw, ch/ih);
+    view.zoom = s; view.x = 0; view.y = 0;
+  }
+
+  function fitAll(){
+    if(state.mode==='side'){ fitView(state.A, cvsA); fitView(state.B, cvsB); }
+    else { if(state.A.img){ const cw=cvsO.clientWidth, ch=cvsO.clientHeight; const s = Math.min(cw/state.A.img.naturalWidth, ch/state.A.img.naturalHeight); state.O.zoom=s; state.O.x=state.O.y=0; } }
+    draw();
+  }
+
+  // Preparar caches de bordes/diferencias escalados al canvas para overlay rápido
+  function prepareAnalysisCaches(){
+    // Redibuja A y B en canvases temporales del tamaño del canvas overlay para poder hacer Sobel y Diff a resolución de vista.
+    if(!cvsO.clientWidth) return; // aún no escalado
+
+    // A
+    if(state.A.img){
+      const tempA = document.createElement('canvas'); tempA.width=cvsO.width; tempA.height=cvsO.height; const tctxA=tempA.getContext('2d');
+      // emula transform de overlay actual
+      const cw = cvsO.clientWidth, ch = cvsO.clientHeight; tctxA.setTransform(1,0,0,1,0,0); tctxA.clearRect(0,0,tempA.width,tempA.height);
+      tctxA.translate(cw/2 + state.O.x, ch/2 + state.O.y); tctxA.scale(state.O.zoom, state.O.zoom);
+      tctxA.drawImage(state.A.img, -state.A.img.naturalWidth/2, -state.A.img.naturalHeight/2);
+      state.A.edgesCacheOverlay = state.A.tainted? null : sobelFromCanvas(tempA, state.edgesStrength);
+      state._tempA = tempA;
+    }
+    // B
+    if(state.B.img){
+      const tempB = document.createElement('canvas'); tempB.width=cvsO.width; tempB.height=cvsO.height; const tctxB=tempB.getContext('2d');
+      const cw = cvsO.clientWidth, ch = cvsO.clientHeight; tctxB.setTransform(1,0,0,1,0,0); tctxB.clearRect(0,0,tempB.width,tempB.height);
+      tctxB.translate(cw/2 + state.O.x, ch/2 + state.O.y); tctxB.scale(state.O.zoom, state.O.zoom);
+      tctxB.drawImage(state.B.img, -state.B.img.naturalWidth/2, -state.B.img.naturalHeight/2);
+      state.B.edgesCacheOverlay = state.B.tainted? null : sobelFromCanvas(tempB, state.edgesStrength);
+      state._tempB = tempB;
+    }
+
+    // Diff heatmap
+    if(state.A.img && state.B.img && !state.A.tainted && !state.B.tainted){
+      state.O.diff = differenceHeatmapCanvas(state._tempA, state._tempB, state.diffThreshold, state.diffGain);
+    } else {
+      state.O.diff = null;
+    }
+  }
+
+  // Recalcular caches cuando cambian parámetros relevantes
+  ['edgesStrength','gamma','diffThreshold','diffGain'].forEach(id=>{
+    document.getElementById(id).addEventListener('input', ()=>{ prepareAnalysisCaches(); draw(); });
+  });
+
+  // ============= Inicialización =============
+  function init(){
+    resizeAll();
+    attachNavHandlers(vpA, cvsA, 'A');
+    attachNavHandlers(vpB, cvsB, 'B');
+    attachNavHandlers(vpO, cvsO, 'O');
+    // Muestra un par por defecto para que haya algo al cargar
+    loadPair(NASA.full2025, NASA.full2016).then(()=>{ fitAll(); });
+
+    // Mover slider con drag directo sobre el overlay
+    vpO.addEventListener('pointerdown', (e)=>{ if(state.mode!=='overlay') return; const rect = vpO.getBoundingClientRect(); const x = (e.clientX - rect.left)/rect.width; state.wipe = clamp(x,0,1); draw(); document.getElementById('wipe').value=state.wipe; });
+    vpO.addEventListener('pointermove', (e)=>{ if(!e.buttons) return; if(state.mode!=='overlay') return; const rect = vpO.getBoundingClientRect(); const x = (e.clientX - rect.left)/rect.width; state.wipe = clamp(x,0,1); draw(); document.getElementById('wipe').value=state.wipe; });
+
+    // Observa cambios de tamaño del contenedor overlay para recachear
+    const ro = new ResizeObserver(()=>{ prepareAnalysisCaches(); draw(); }); ro.observe(vpO);
+  }
+
+  init();
+
+  </script>
+
+  <!-- ===== Comentarios / Fuentes =====
+    Imágenes por defecto (todas NASA/GSFC/SVS, LRO/LROC/LOLA):
+      - Moon Mosaic (LRO NAC 2018) JPG: https://svs.gsfc.nasa.gov/5001  (descarga directa: /vis/a000000/a005000/a005001/moon_mosaic_print.jpg)
+      - Moon Phase and Libration 2025 (Full Moon) JPG: https://svs.gsfc.nasa.gov/5415  (descarga directa: /vis/a000000/a005000/a005048/phase_full.1571_print.jpg)
+      - Moon Phase and Libration 2016 (Full Moon) JPG: https://svs.gsfc.nasa.gov/4404  (descarga directa: /vis/a000000/a004200/a004236/phase_full.0815_preview.jpg)
+      - Hyperwall: Tycho Central Peak (oblicua & cenital) JPGs: https://svs.gsfc.nasa.gov/4220  (descargas: /a004220/tycho_central_peak_wide_print.jpg y /tycho_central_peak_nadir_print.jpg)
+    Uso y crédito: Las imágenes de SVS son de dominio público pero requieren atribución a NASA/GSFC/SVS y equipos LRO/LROC/LOLA cuando proceda.
+  -->
+</body>
+</html>
