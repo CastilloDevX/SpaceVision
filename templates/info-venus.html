@@ -1,11 +1,10 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="en">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1.0" />
-<title>Venus — Explorador Vectorial</title>
+<title>Venus — Vector Explorer</title>
 
-<!-- Fuente -->
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;800&display=swap" rel="stylesheet">
 
 <style>
@@ -20,9 +19,10 @@
     --muted: rgba(247,246,242,0.78);
     --soft-shadow: 0 12px 40px rgba(0,0,0,0.6);
     --radius: 18px;
+    --focus: 2px solid #e6d79a;
   }
 
-  /* Reset */
+  /* Reset & base */
   *{box-sizing:border-box}
   html,body{height:100%}
   body{
@@ -36,6 +36,14 @@
     -webkit-font-smoothing:antialiased;
     -moz-osx-font-smoothing:grayscale;
     overflow:hidden;
+  }
+
+  a.skip-link{
+    position:absolute;left:-9999px;top:auto;width:1px;height:1px;overflow:hidden;
+  }
+  a.skip-link:focus{
+    left:16px;top:16px;width:auto;height:auto;padding:8px 12px;border-radius:10px;
+    background:#1b1b1b;color:#fff;outline:var(--focus);z-index:1000;
   }
 
   /* Top header */
@@ -59,6 +67,9 @@
     border:1px solid rgba(255,255,255,0.04);
   }
   @keyframes slowDrift{0%{transform:rotate(0deg)}50%{transform:rotate(-4deg)}100%{transform:rotate(0deg)}}
+  @media (prefers-reduced-motion: reduce){
+    .venus-emblem{animation: none}
+  }
 
   .brand h1{font-size:18px;margin:0;font-weight:800;letter-spacing:.6px}
   .brand p{margin:2px 0 0;font-size:12px;color:var(--muted)}
@@ -75,6 +86,7 @@
   .nav-btn svg{width:18px;height:18px;display:block}
   .nav-btn:hover{transform:translateY(-6px) scale(1.03);box-shadow:0 12px 30px rgba(180,140,60,0.12)}
   .nav-btn.active{background:linear-gradient(90deg, rgba(230,215,150,0.12), rgba(199,158,74,0.06));box-shadow:0 14px 36px rgba(180,140,60,0.14)}
+  .nav-btn:focus-visible{outline:var(--focus);outline-offset:2px}
 
   /* Viewport */
   main.viewport{
@@ -85,9 +97,7 @@
   /* Panels container */
   .panels{
     width:1200px;max-width:calc(100% - 80px);height:calc(100% - 120px);
-    position:relative;
-    overflow:visible;
-    display:flex;align-items:center;justify-content:center;
+    position:relative; overflow:visible; display:flex;align-items:center;justify-content:center;
   }
 
   /* Panel base */
@@ -105,19 +115,16 @@
     overflow: hidden;
   }
   .panel.active{transform: translateX(0) scale(1);opacity:1;z-index:30}
+  .panel:focus-visible{outline:var(--focus);outline-offset:4px}
 
   /* Panel inner content */
-  .content{
-    padding-right:6%;
-    max-width:920px;
-  }
+  .content{ padding-right:6%; max-width:920px; }
   .panel-title{font-size:40px;color:var(--accent-1);margin:0 0 10px 0;letter-spacing:.4px}
   .lead{font-size:18px;color:var(--muted);line-height:1.6;margin-bottom:18px}
   .card-blurb{
     background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.008));
     padding:18px;border-radius:14px;border:1px solid var(--card-border);
   }
-
   .facts{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:18px}
   .fact{background:rgba(255,255,255,0.02);padding:10px;border-radius:10px;font-weight:600;color:var(--muted);font-size:13px}
 
@@ -134,8 +141,6 @@
     box-shadow: 0 18px 50px rgba(0,0,0,0.6);
     overflow:hidden;position:relative;
   }
-
-  /* SVG container scales nicely */
   .illustration{
     width:90%;height:90%;
     display:block;
@@ -144,6 +149,9 @@
     filter: drop-shadow(0 12px 40px rgba(0,0,0,0.12));
   }
   .illustration-wrap:hover .illustration{ transform: scale(1.03) rotate(-3deg) }
+  @media (prefers-reduced-motion: reduce){
+    .illustration-wrap:hover .illustration{ transform:none }
+  }
 
   .meta-card{
     width:100%;padding:12px;border-radius:12px;background:rgba(255,255,255,0.02);
@@ -158,6 +166,7 @@
   }
   .dot-btn{width:14px;height:14px;border-radius:50%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.03);cursor:pointer}
   .dot-btn.active{background:linear-gradient(180deg,var(--accent-1),var(--accent-2));box-shadow:0 10px 26px rgba(180,140,60,0.18);transform:scale(1.25)}
+  .dot-btn:focus-visible{outline:var(--focus);outline-offset:2px}
 
   /* Responsive */
   @media (max-width:1100px){
@@ -168,32 +177,41 @@
   @media (max-width:900px){
     main.viewport{padding:18px}
     .panel{grid-template-columns:1fr;padding:22px;border-radius:14px}
+    .media{padding-left:0}
     .illustration-wrap{max-width:100%;height:320px}
   }
   @media (max-width:640px){
     .panel{grid-template-columns:1fr;gap:18px;padding:18px;align-items:flex-start}
-    .media{order:-1;padding-left:0}
+    .media{order:-1}
     .illustration-wrap{height:260px}
     .panel-title{font-size:28px}
   }
 
-  /* staging reveals */
+  /* staged reveals */
   .stagger{opacity:0;transform:translateY(8px);transition: all .6s cubic-bezier(.2,.9,.25,1)}
   .stagger.show{opacity:1;transform:none}
+  @media (prefers-reduced-motion: reduce){
+    .stagger{opacity:1;transform:none;transition:none}
+  }
 </style>
 </head>
 <body>
+<a class="skip-link" href="#main">Skip to content</a>
 
-<!-- Partículas (canvas) -->
+<!-- Particles (canvas) -->
 <canvas id="particle-canvas" style="position:fixed;inset:0;z-index:5;pointer-events:none"></canvas>
 
 <header class="app-header" role="banner">
-  <div class="brand" aria-hidden="false">
+  <div class="brand">
     <div class="venus-emblem" aria-hidden="true">
-      <!-- minimal crater motif -->
-      <svg width="42" height="42" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <!-- subtle crater motif -->
+      <svg width="42" height="42" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
         <defs>
-          <radialGradient id="vgrad" cx="30%" cy="25%"><stop offset="0%" stop-color="#fff8e6"/><stop offset="60%" stop-color="#e6d79a"/><stop offset="100%" stop-color="#b58f54"/></radialGradient>
+          <radialGradient id="vgrad" cx="30%" cy="25%">
+            <stop offset="0%" stop-color="#fff8e6"/>
+            <stop offset="60%" stop-color="#e6d79a"/>
+            <stop offset="100%" stop-color="#b58f54"/>
+          </radialGradient>
         </defs>
         <circle cx="32" cy="32" r="30" fill="url(#vgrad)" />
         <g fill="#bca66f" opacity="0.7">
@@ -205,152 +223,152 @@
     </div>
     <div>
       <h1>VENUS</h1>
-      <p>Explorador vectorial — minimalista</p>
+      <p>Vector explorer — minimalist</p>
     </div>
   </div>
 
-  <nav class="top-nav" role="navigation" aria-label="Navegación principal">
-    <button class="nav-btn active" data-target="0" aria-pressed="true" title="Composición y estructura">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
-      Estructura
+  <nav class="top-nav" role="navigation" aria-label="Primary navigation">
+    <button class="nav-btn active" data-target="0" aria-pressed="true" title="Composition & structure" accesskey="1">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+      Structure
     </button>
 
-    <button class="nav-btn" data-target="1" title="Atmósfera y temperatura">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h18"/><path d="M7 7h10"/></svg>
-      Atmósfera
+    <button class="nav-btn" data-target="1" title="Atmosphere & temperature" accesskey="2" aria-pressed="false">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12h18"/><path d="M7 7h10"/></svg>
+      Atmosphere
     </button>
 
-    <button class="nav-btn" data-target="2" title="Movimiento y órbita">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 3v9l3 3"/></svg>
-      Órbita
+    <button class="nav-btn" data-target="2" title="Motion & orbit" accesskey="3" aria-pressed="false">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 3v9l3 3"/></svg>
+      Orbit
     </button>
 
-    <button class="nav-btn" data-target="3" title="Curiosidades e influencia">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l2 5 5 .5-4 3 1.5 5L12 14l-4.5 2.5L9 10 5 7.5 10 7z"/></svg>
-      Curiosidades
+    <button class="nav-btn" data-target="3" title="Curiosities & influence" accesskey="4" aria-pressed="false">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2l2 5 5 .5-4 3 1.5 5L12 14l-4.5 2.5L9 10 5 7.5 10 7z"/></svg>
+      Curiosities
     </button>
   </nav>
 </header>
 
-<main class="viewport" role="main">
+<main id="main" class="viewport" role="main" tabindex="-1">
   <div class="panels">
 
-    <!-- PANEL 0: Composición y estructura -->
-    <section class="panel active" data-index="0" id="panel-0" aria-labelledby="title-0" role="region">
+    <!-- PANEL 0: Composition & structure -->
+    <section class="panel active" data-index="0" id="panel-0" aria-labelledby="title-0" role="region" tabindex="-1">
       <div class="content">
-        <h2 id="title-0" class="panel-title stagger show">Composición y estructura</h2>
-        <p class="lead stagger show" style="transition-delay:.05s">Venus es un planeta rocoso, muy similar en tamaño a la Tierra. Su estructura incluye un <strong>núcleo metálico</strong>, un <strong>manto rocoso</strong> y una superficie dominada por volcanes activos y extensas planicies basálticas.</p>
+        <h2 id="title-0" class="panel-title stagger show">Composition & Structure</h2>
+        <p class="lead stagger show" style="transition-delay:.05s">
+          Venus is a rocky planet similar in size to Earth. Its interior includes a <strong>metallic core</strong>, a <strong>rocky mantle</strong>, and a surface shaped by widespread volcanism and vast basaltic plains.
+        </p>
 
         <div class="card-blurb stagger show" style="transition-delay:.12s">
-          <strong>Núcleo:</strong> mayoritariamente hierro y níquel. <br>
-          <strong>Manto:</strong> rocoso y denso. <br>
-          <strong>Superficie:</strong> volcanes, flujos de lava y llanuras amplias.
+          <strong>Core:</strong> mostly iron and nickel.<br>
+          <strong>Mantle:</strong> dense, rocky layer.<br>
+          <strong>Surface:</strong> volcanoes, lava flows, and broad plains.
         </div>
 
         <div class="facts stagger show" style="transition-delay:.20s">
-          <div class="fact"><strong>Tipo:</strong> Planeta rocoso (telúrico)</div>
-          <div class="fact"><strong>Tamaño:</strong> similar a la Tierra</div>
-          <div class="fact"><strong>Superficie:</strong> volcanes activos, planicies</div>
-          <div class="fact"><strong>Núcleo:</strong> metálico (Fe, Ni)</div>
+          <div class="fact"><strong>Type:</strong> Terrestrial (rocky) planet</div>
+          <div class="fact"><strong>Size:</strong> Earth-sized</div>
+          <div class="fact"><strong>Surface:</strong> active volcanism, plains</div>
+          <div class="fact"><strong>Core:</strong> metallic (Fe, Ni)</div>
         </div>
       </div>
 
       <aside class="media">
         <div class="illustration-wrap" aria-hidden="false">
-          <!-- Minimalist SVG: cross-section stylized of Venus -->
-          <svg class="illustration" viewBox="0 0 800 720" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Esquema vectorial de Venus">
+          <!-- SVG: Venus cross-section -->
+          <svg class="illustration" viewBox="0 0 800 720" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Stylized cross-section of Venus">
             <defs>
-              <radialGradient id="v_core" cx="40%" cy="50%"><stop offset="0%" stop-color="#fff8e6"/><stop offset="45%" stop-color="#e6d79a"/><stop offset="100%" stop-color="#cfa86b"/></radialGradient>
+              <radialGradient id="v_core" cx="40%" cy="50%">
+                <stop offset="0%" stop-color="#fff8e6"/>
+                <stop offset="45%" stop-color="#e6d79a"/>
+                <stop offset="100%" stop-color="#cfa86b"/>
+              </radialGradient>
             </defs>
 
             <rect width="100%" height="100%" fill="transparent"/>
 
             <g transform="translate(400,360)">
-              <!-- outer disk -->
               <circle r="220" fill="#e7d9b0" stroke="#c9b582" stroke-width="2"/>
-              <!-- subtle geometric cloud bands -->
               <g opacity="0.14" fill="#fff">
                 <ellipse rx="200" ry="36" transform="rotate(-10)" />
                 <ellipse rx="200" ry="28" transform="rotate(8)" />
                 <ellipse rx="160" ry="20" transform="translate(-20,40) rotate(-6)"/>
               </g>
 
-              <!-- mantle ring -->
               <circle r="140" fill="none" stroke="#d6c38b" stroke-width="3" opacity="0.9"/>
-
-              <!-- core -->
               <circle r="90" fill="url(#v_core)" />
               <circle r="36" fill="#b58f54" opacity="0.95"/>
 
-              <!-- labels (decorative minimal) -->
               <g transform="translate(-230,-160)" fill="#2b1b00" font-size="14" opacity="0.9">
-                <text x="0" y="0">Corteza y nubes densas</text>
+                <text x="0" y="0">Crust & dense clouds</text>
               </g>
               <g transform="translate(-160,-20)" fill="#2b1b00" font-size="13" opacity="0.9">
-                <text x="0" y="0">Manto rocoso</text>
+                <text x="0" y="0">Rocky mantle</text>
               </g>
               <g transform="translate(-120,120)" fill="#2b1b00" font-size="13" opacity="0.9">
-                <text x="0" y="0">Núcleo metálico</text>
+                <text x="0" y="0">Metallic core</text>
               </g>
             </g>
           </svg>
         </div>
 
-        <div class="meta-card">
+        <div class="meta-card" role="note" aria-label="Quick summary">
           <div style="flex:1">
-            <div style="font-weight:800">Resumen rápido</div>
-            <p style="margin:6px 0 0 0;color:var(--muted);font-size:13px">Venus comparte tamaño y estructura con la Tierra pero su superficie y geología están dominadas por volcanismo y llanuras extensas.</p>
+            <div style="font-weight:800">Quick summary</div>
+            <p style="margin:6px 0 0 0;color:var(--muted);font-size:13px">
+              Earth-like size and structure, but a surface dominated by volcanism and extensive plains.
+            </p>
           </div>
           <div class="dot" aria-hidden="true"></div>
         </div>
       </aside>
     </section>
 
-    <!-- PANEL 1: Atmósfera y temperaturas -->
-    <section class="panel" data-index="1" id="panel-1" aria-labelledby="title-1" role="region">
+    <!-- PANEL 1: Atmosphere & temperatures -->
+    <section class="panel" data-index="1" id="panel-1" aria-labelledby="title-1" role="region" tabindex="-1">
       <div class="content">
-        <h2 id="title-1" class="panel-title stagger">Atmósfera</h2>
-        <p class="lead stagger" style="transition-delay:.05s">La atmósfera de Venus está compuesta principalmente por <strong>dióxido de carbono (CO₂)</strong>, con densas nubes de <strong>ácido sulfúrico</strong>. Esto genera el <strong>efecto invernadero más fuerte</strong> del Sistema Solar.</p>
+        <h2 id="title-1" class="panel-title stagger">Atmosphere</h2>
+        <p class="lead stagger" style="transition-delay:.05s">
+          Venus’ atmosphere is mostly <strong>carbon dioxide (CO₂)</strong>, with thick clouds of <strong>sulfuric acid</strong>. This produces the <strong>strongest greenhouse effect</strong> in the Solar System.
+        </p>
 
         <div class="card-blurb stagger" style="transition-delay:.12s">
-          La combinación de una atmósfera muy densa y nubes reflectantes mantiene temperaturas superficiales extremadamente altas y presiones atmosféricas muy superiores a las de la Tierra.
+          A very dense atmosphere and highly reflective cloud deck trap heat, leading to extreme surface temperatures and surface pressures far above Earth’s.
         </div>
 
         <div class="facts stagger" style="transition-delay:.20s">
-          <div class="fact"><strong>Composición:</strong> CO₂ dominante</div>
-          <div class="fact"><strong>Nubes:</strong> ácido sulfúrico</div>
-          <div class="fact"><strong>Efecto invernadero:</strong> más fuerte del sistema solar</div>
-          <div class="fact"><strong>Presión:</strong> ~92 atm en superficie</div>
+          <div class="fact"><strong>Composition:</strong> CO₂-dominated</div>
+          <div class="fact"><strong>Clouds:</strong> sulfuric acid</div>
+          <div class="fact"><strong>Greenhouse:</strong> strongest in the Solar System</div>
+          <div class="fact"><strong>Pressure:</strong> ~92 atm at surface</div>
         </div>
       </div>
 
       <aside class="media">
         <div class="illustration-wrap">
-          <!-- Minimalist SVG: stylized atmosphere, dense cloud bands -->
-          <svg class="illustration" viewBox="0 0 800 600" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Ilustración vectorial de la atmósfera de Venus">
+          <!-- SVG: atmosphere & temp -->
+          <svg class="illustration" viewBox="0 0 800 600" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Stylized atmosphere of Venus">
             <defs>
               <linearGradient id="v_hot" x1="0" x2="1"><stop offset="0%" stop-color="#f9e8c2"/><stop offset="100%" stop-color="#f0c57a"/></linearGradient>
             </defs>
             <rect width="100%" height="100%" fill="transparent" />
 
-            <!-- base planet disc -->
             <g transform="translate(260,300)">
               <circle r="110" fill="#e6d79a" stroke="#c9b582" stroke-width="4"/>
-              <!-- dense cloud bands (geometric) -->
               <g fill="#fff" opacity="0.16">
                 <rect x="-120" y="-24" width="240" height="18" rx="9" transform="rotate(-6)"/>
                 <rect x="-100" y="6" width="200" height="12" rx="6" transform="rotate(8)"/>
               </g>
             </g>
 
-            <!-- stylized temperature icon -->
             <g transform="translate(460,160)">
               <rect x="-90" y="-30" width="180" height="80" rx="12" fill="rgba(255,255,255,0.02)" stroke="#2b1b00"/>
-              <text x="-66" y="10" font-size="13" fill="#fff">Temperatura superficial</text>
+              <text x="-66" y="10" font-size="13" fill="#fff">Surface temperature</text>
               <text x="-66" y="36" font-size="12" fill="#ffcfa0">~465 °C</text>
             </g>
 
-            <!-- small exosphere/cloud particle hints -->
             <g transform="translate(480,360)" opacity="0.9">
               <circle cx="-40" cy="-20" r="3" fill="#fff5d9"/>
               <circle cx="-10" cy="-40" r="2.2" fill="#fff1d1"/>
@@ -359,116 +377,116 @@
           </svg>
         </div>
 
-        <div class="meta-card">
+        <div class="meta-card" role="note" aria-label="Atmosphere note">
           <div style="flex:1">
-            <div style="font-weight:800">Dato</div>
-            <p style="margin:6px 0 0 0;color:var(--muted);font-size:13px">La atmósfera densa causa presiones superficiales ~92 veces las de la Tierra y temperaturas de ~465 °C.</p>
+            <div style="font-weight:800">Fact</div>
+            <p style="margin:6px 0 0 0;color:var(--muted);font-size:13px">
+              The dense atmosphere yields ~92× Earth’s surface pressure and ~465 °C temperatures.
+            </p>
           </div>
           <div class="dot" aria-hidden="true"></div>
         </div>
       </aside>
     </section>
 
-    <!-- PANEL 2: Movimiento y órbita -->
-    <section class="panel" data-index="2" id="panel-2" aria-labelledby="title-2" role="region">
+    <!-- PANEL 2: Motion & orbit -->
+    <section class="panel" data-index="2" id="panel-2" aria-labelledby="title-2" role="region" tabindex="-1">
       <div class="content">
-        <h2 id="title-2" class="panel-title stagger">Movimiento y órbita</h2>
-        <p class="lead stagger" style="transition-delay:.05s">Venus tarda <strong>225 días terrestres</strong> en completar una órbita alrededor del Sol. Su rotación es <strong>retrógrada</strong> y extremadamente lenta: un día sideral dura ~<strong>243 días terrestres</strong>, lo que significa que gira en sentido contrario al de la mayoría de los planetas.</p>
+        <h2 id="title-2" class="panel-title stagger">Motion & Orbit</h2>
+        <p class="lead stagger" style="transition-delay:.05s">
+          Venus takes <strong>225 Earth days</strong> to orbit the Sun. Its rotation is <strong>retrograde</strong> and extremely slow: a sidereal day lasts about <strong>243 Earth days</strong>, meaning it spins opposite most planets.
+        </p>
 
         <div class="card-blurb stagger" style="transition-delay:.12s">
-          Debido a su rotación retrógrada y lenta, un día solar en Venus resulta más largo que su año orbital. Este comportamiento influye en patrones de viento y circulación atmosférica.
+          Because of the slow, retrograde rotation, a solar day on Venus is longer than its year. This affects wind patterns and atmospheric circulation.
         </div>
 
         <div class="facts stagger" style="transition-delay:.20s">
-          <div class="fact"><strong>Periodo orbital:</strong> ~225 días</div>
-          <div class="fact"><strong>Rotación:</strong> retrógrada, ~243 días</div>
-          <div class="fact"><strong>Día vs año:</strong> el día es más largo que el año</div>
-          <div class="fact"><strong>Distancia media:</strong> ~0.72 UA</div>
+          <div class="fact"><strong>Orbital period:</strong> ~225 days</div>
+          <div class="fact"><strong>Rotation:</strong> retrograde, ~243 days</div>
+          <div class="fact"><strong>Day vs year:</strong> day longer than year</div>
+          <div class="fact"><strong>Mean distance:</strong> ~0.72 AU</div>
         </div>
       </div>
 
       <aside class="media">
         <div class="illustration-wrap">
-          <!-- Minimalist SVG: orbit + retrograde rotation icon -->
-          <svg class="illustration" viewBox="0 0 800 600" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Ilustración vectorial de la órbita y rotación de Venus">
+          <!-- SVG: orbit + retrograde -->
+          <svg class="illustration" viewBox="0 0 800 600" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Venus orbit and retrograde rotation">
             <rect width="100%" height="100%" fill="transparent"/>
-            <!-- Sun -->
             <g transform="translate(400,300)">
               <circle r="28" fill="#ffdca0" opacity="0.95"/>
             </g>
 
-            <!-- orbit path -->
             <g transform="translate(400,300)">
               <ellipse rx="220" ry="160" fill="none" stroke="#c9b582" stroke-dasharray="6 6" stroke-width="1.6" opacity="0.6"/>
-              <!-- planet marker -->
               <g transform="translate(-180,-40)">
                 <circle r="18" fill="#e6d79a" stroke="#b99d5f" stroke-width="2"/>
                 <text x="-12" y="44" font-size="12" fill="#fff">Venus</text>
               </g>
             </g>
 
-            <!-- retrograde arrow -->
             <g transform="translate(620,120)" opacity="0.95">
               <path d="M10 40 A30 30 0 1 0 70 40" fill="none" stroke="#d6c38b" stroke-width="2"/>
               <polygon points="8,36 18,32 18,40" fill="#d6c38b"/>
-              <text x="-8" y="70" font-size="12" fill="#d6c38b">Rotación retrógrada (~243 días)</text>
+              <text x="-8" y="70" font-size="12" fill="#d6c38b">Retrograde (~243 days)</text>
             </g>
 
-            <!-- annotation -->
             <g transform="translate(120,420)">
               <rect x="0" y="0" width="560" height="60" rx="10" fill="rgba(255,255,255,0.02)" stroke="#2a2a2a"/>
-              <text x="18" y="36" font-size="13" fill="#fff">Año: ~225 días — Rotación: retrógrada y muy lenta (día más largo que el año)</text>
+              <text x="18" y="36" font-size="13" fill="#fff">Year: ~225 days — Rotation: retrograde & very slow (day longer than year)</text>
             </g>
           </svg>
         </div>
 
-        <div class="meta-card">
+        <div class="meta-card" role="note" aria-label="Motion note">
           <div style="flex:1">
-            <div style="font-weight:800">Movimiento</div>
-            <p style="margin:6px 0 0 0;color:var(--muted);font-size:13px">La rotación retrógrada y la lenta velocidad de giro crean condiciones atmosféricas únicas comparadas con la Tierra.</p>
+            <div style="font-weight:800">Motion</div>
+            <p style="margin:6px 0 0 0;color:var(--muted);font-size:13px">
+              The retrograde, sluggish spin drives unique atmospheric dynamics compared to Earth.
+            </p>
           </div>
           <div class="dot" aria-hidden="true"></div>
         </div>
       </aside>
     </section>
 
-    <!-- PANEL 3: Curiosidades e influencia -->
-    <section class="panel" data-index="3" id="panel-3" aria-labelledby="title-3" role="region">
+    <!-- PANEL 3: Curiosities & influence -->
+    <section class="panel" data-index="3" id="panel-3" aria-labelledby="title-3" role="region" tabindex="-1">
       <div class="content">
-        <h2 id="title-3" class="panel-title stagger">Curiosidades e influencia</h2>
-        <p class="lead stagger" style="transition-delay:.05s">Venus es el planeta más caliente del sistema solar, con temperaturas superficiales estables alrededor de <strong>~465 °C</strong>. Desde la Tierra se le ve como el famoso <em>lucero del alba</em> o <em>lucero vespertino</em>.</p>
+        <h2 id="title-3" class="panel-title stagger">Curiosities & Influence</h2>
+        <p class="lead stagger" style="transition-delay:.05s">
+          Venus is the hottest planet, with surface temperatures around <strong>~465 °C</strong>. From Earth it appears as the bright <em>morning</em> or <em>evening star</em>.
+        </p>
 
         <div class="card-blurb stagger" style="transition-delay:.12s">
-          Su atmósfera densa, volcanismo y brillo visible lo hacen un objetivo clave para estudiar el clima extremo y la evolución planetaria.
+          Its dense atmosphere, volcanism, and high albedo make it a prime target to study extreme climates and planetary evolution.
         </div>
 
         <div class="facts stagger" style="transition-delay:.20s">
-          <div class="fact"><strong>Temperatura:</strong> ~465 °C (estable)</div>
-          <div class="fact"><strong>Visibilidad:</strong> brillante en el cielo desde la Tierra</div>
-          <div class="fact"><strong>Actividad:</strong> volcanismo (posible actividad actual)</div>
-          <div class="fact"><strong>Interés:</strong> estudia evolución planetaria y efecto invernadero extremo</div>
+          <div class="fact"><strong>Temperature:</strong> ~465 °C (stable)</div>
+          <div class="fact"><strong>Visibility:</strong> very bright in Earth’s sky</div>
+          <div class="fact"><strong>Activity:</strong> volcanism (possible current activity)</div>
+          <div class="fact"><strong>Interest:</strong> greenhouse limits & atmospheric evolution</div>
         </div>
       </div>
 
       <aside class="media">
         <div class="illustration-wrap">
-          <!-- Minimalist SVG: features and observation stylized -->
-          <svg class="illustration" viewBox="0 0 800 600" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Ilustración vectorial de curiosidades de Venus">
+          <!-- SVG: curiosities -->
+          <svg class="illustration" viewBox="0 0 800 600" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Venus curiosities">
             <rect width="100%" height="100%" fill="transparent"/>
-            <!-- bright disk (as seen from Earth) -->
             <g transform="translate(220,300)">
               <circle r="60" fill="#f3e3b0" stroke="#d1b77a" stroke-width="3"/>
-              <text x="-46" y="86" font-size="12" fill="#fff">Lucero (visible desde la Tierra)</text>
+              <text x="-46" y="86" font-size="12" fill="#fff">Bright to the naked eye</text>
             </g>
 
-            <!-- stylized volcano -->
             <g transform="translate(420,300)">
               <path d="M-32,40 L0,-48 L32,40 Z" fill="#d6b37a"/>
               <rect x="-44" y="40" width="88" height="20" rx="6" fill="#c9a56f" />
-              <text x="-64" y="86" font-size="12" fill="#fff">Volcanes y llanuras</text>
+              <text x="-64" y="86" font-size="12" fill="#fff">Volcanoes & plains</text>
             </g>
 
-            <!-- temperature badge -->
             <g transform="translate(560,420)">
               <rect x="-36" y="-28" width="72" height="36" rx="8" fill="rgba(255,255,255,0.02)" stroke="#2a2a2a"/>
               <text x="-26" y="-4" font-size="13" fill="#ffcfa0">~465 °C</text>
@@ -476,10 +494,12 @@
           </svg>
         </div>
 
-        <div class="meta-card">
+        <div class="meta-card" role="note" aria-label="Perspective">
           <div style="flex:1">
-            <div style="font-weight:800">Perspectiva</div>
-            <p style="margin:6px 0 0 0;color:var(--muted);font-size:13px">Estudiar Venus ayuda a comprender los límites del efecto invernadero y la evolución de atmósferas planetarias.</p>
+            <div style="font-weight:800">Perspective</div>
+            <p style="margin:6px 0 0 0;color:var(--muted);font-size:13px">
+              Studying Venus helps define the extremes of greenhouse physics and atmospheric evolution.
+            </p>
           </div>
           <div class="dot" aria-hidden="true"></div>
         </div>
@@ -490,27 +510,28 @@
 </main>
 
 <!-- side progress -->
-<div class="side-progress" aria-hidden="false">
-  <div class="dot-btn active" data-target="0" title="Estructura"></div>
-  <div class="dot-btn" data-target="1" title="Atmósfera"></div>
-  <div class="dot-btn" data-target="2" title="Órbita"></div>
-  <div class="dot-btn" data-target="3" title="Curiosidades"></div>
+<div class="side-progress" aria-label="Section dots">
+  <button class="dot-btn active" data-target="0" title="Structure" aria-label="Go to Structure"></button>
+  <button class="dot-btn" data-target="1" title="Atmosphere" aria-label="Go to Atmosphere"></button>
+  <button class="dot-btn" data-target="2" title="Orbit" aria-label="Go to Orbit"></button>
+  <button class="dot-btn" data-target="3" title="Curiosities" aria-label="Go to Curiosities"></button>
 </div>
 
 <script>
 /* ---------------------------
-   Partículas sutiles - Canvas
+   Subtle particles (Canvas)
    --------------------------- */
 (function particles(){
   const canvas = document.getElementById('particle-canvas');
   const ctx = canvas.getContext('2d');
-  let w = canvas.width = innerWidth, h = canvas.height = innerHeight;
-  window.addEventListener('resize', ()=>{ w=canvas.width=innerWidth; h=canvas.height=innerHeight; });
+  function size(){ canvas.width = innerWidth; canvas.height = innerHeight; }
+  size(); addEventListener('resize', size);
+  const prefersReduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  const N = Math.round((w*h)/70000);
+  const N = Math.round((canvas.width*canvas.height)/70000);
   const parts = Array.from({length: Math.max(60, N)}, ()=>({
-    x: Math.random()*w,
-    y: Math.random()*h,
+    x: Math.random()*canvas.width,
+    y: Math.random()*canvas.height,
     r: Math.random()*1.8 + 0.3,
     vx: (Math.random()-0.5)*0.15,
     vy: (Math.random()-0.5)*0.15,
@@ -518,14 +539,13 @@
   }));
 
   function step(){
-    ctx.clearRect(0,0,w,h);
+    ctx.clearRect(0,0,canvas.width,canvas.height);
     for(const p of parts){
-      p.x += p.vx;
-      p.y += p.vy;
-      if(p.x < -10) p.x = w + 10;
-      if(p.x > w + 10) p.x = -10;
-      if(p.y < -10) p.y = h + 10;
-      if(p.y > h + 10) p.y = -10;
+      if(!prefersReduced){ p.x += p.vx; p.y += p.vy; }
+      if(p.x < -10) p.x = canvas.width + 10;
+      if(p.x > canvas.width + 10) p.x = -10;
+      if(p.y < -10) p.y = canvas.height + 10;
+      if(p.y > canvas.height + 10) p.y = -10;
       ctx.beginPath();
       ctx.fillStyle = 'rgba(255,255,255,'+ (p.alpha*0.8) +')';
       ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
@@ -545,31 +565,29 @@ const dots = Array.from(document.querySelectorAll('.dot-btn'));
 let current = 0;
 const STAGGER_DELAY = 90;
 
-function setActive(index, direction=1){
+function setActive(index){
   if(index === current) return;
-  // clamp
   index = Math.max(0, Math.min(panels.length-1, index));
+
   const prev = current;
   const next = index;
-  // remove active from previous
+
   panels[prev].classList.remove('active');
   navBtns[prev].classList.remove('active');
   navBtns[prev].setAttribute('aria-pressed','false');
   dots[prev].classList.remove('active');
 
-  // activate next
   panels[next].classList.add('active');
   navBtns[next].classList.add('active');
   navBtns[next].setAttribute('aria-pressed','true');
   dots[next].classList.add('active');
 
-  // reveal staggered children for polish
   revealStagger(panels[next]);
-
-  // update current
   current = next;
-  // update URL hash (optional)
   history.replaceState(null, '', '#p' + next);
+
+  // move focus to newly active region for a11y
+  panels[next].focus();
 }
 
 function revealStagger(panelEl){
@@ -580,43 +598,39 @@ function revealStagger(panelEl){
   });
 }
 
-// init nav click
 navBtns.forEach(b => b.addEventListener('click', ()=> {
   const target = Number(b.dataset.target);
-  setActive(target, target > current ? 1 : -1);
+  setActive(target);
 }));
 
 dots.forEach(d => d.addEventListener('click', ()=> {
   const target = Number(d.dataset.target);
-  setActive(target, target > current ? 1 : -1);
+  setActive(target);
 }));
 
 // keyboard navigation
 window.addEventListener('keydown', e => {
-  if(e.key === 'ArrowRight'){ if(current < panels.length-1) setActive(current+1,1); }
-  if(e.key === 'ArrowLeft'){ if(current > 0) setActive(current-1,-1); }
+  if(e.key === 'ArrowRight'){ if(current < panels.length-1) setActive(current+1); }
+  if(e.key === 'ArrowLeft'){ if(current > 0) setActive(current-1); }
 });
 
 // swipe support
 (function swipe(){
-  let sx=0, sy=0;
-  window.addEventListener('touchstart', e => {
-    sx = e.touches[0].clientX; sy = e.touches[0].clientY;
-  }, {passive:true});
+  let sx=0;
+  window.addEventListener('touchstart', e => { sx = e.touches[0].clientX; }, {passive:true});
   window.addEventListener('touchend', e => {
     const ex = e.changedTouches[0].clientX;
     const dx = ex - sx;
     if(Math.abs(dx) > 50){
-      if(dx < 0 && current < panels.length-1) setActive(current+1,1);
-      if(dx > 0 && current > 0) setActive(current-1,-1);
+      if(dx < 0 && current < panels.length-1) setActive(current+1);
+      if(dx > 0 && current > 0) setActive(current-1);
     }
   }, {passive:true});
 })();
 
-// Reveal first panel on load (stagger children)
+// init
 document.addEventListener('DOMContentLoaded', ()=> {
   revealStagger(panels[0]);
-  // if URL has hash like #p2 open it
   const hash = window.location.hash;
   if(hash && hash.startsWith('#p')){
     const idx = parseInt(hash.slice(2));

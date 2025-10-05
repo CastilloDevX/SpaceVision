@@ -1,11 +1,11 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="en">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1.0" />
-<title>Tierra — Explorador Vectorial</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<title>Earth — Vector Explorer</title>
 
-<!-- Fuente -->
+<!-- Font -->
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;800&display=swap" rel="stylesheet">
 
 <style>
@@ -20,6 +20,12 @@
     --muted: rgba(238,247,245,0.78);
     --soft-shadow: 0 12px 40px rgba(0,0,0,0.6);
     --radius: 18px;
+
+    --space: clamp(14px, 2.2vw, 24px);
+    --panel-gap: clamp(16px, 3vw, 36px);
+    --panel-radius: clamp(12px, 2.2vw, 20px);
+    --title: clamp(24px, 4vw, 40px);
+    --lead: clamp(15px, 2.2vw, 18px);
   }
 
   /* Reset */
@@ -35,104 +41,115 @@
       linear-gradient(180deg,var(--bg1),var(--bg2) 60%, #000 100%);
     -webkit-font-smoothing:antialiased;
     -moz-osx-font-smoothing:grayscale;
-    overflow:hidden;
+    overflow:hidden; /* page scroll disabled; panels handle their own scroll */
   }
 
   /* Top header */
   header.app-header{
-    position:fixed;left:0;right:0;top:0;height:86px;
-    display:flex;align-items:center;justify-content:space-between;
-    padding:14px 28px;gap:18px;z-index:60;
+    position:fixed;left:0;right:0;top:0;
+    display:flex;align-items:center;justify-content:space-between;gap:18px;
+    padding: calc(env(safe-area-inset-top) + 12px) clamp(16px,4vw,28px) 12px;
+    z-index:60;
     background:linear-gradient(180deg, rgba(0,0,0,0.12), rgba(0,0,0,0.06));
     border-bottom:1px solid rgba(255,255,255,0.03);
     backdrop-filter: blur(6px);
   }
 
-  .brand{display:flex;align-items:center;gap:16px}
+  .brand{display:flex;align-items:center;gap:16px;min-width:0}
   .earth-emblem{
-    width:64px;height:64px;border-radius:50%;
+    width:clamp(48px,6.5vw,64px);height:clamp(48px,6.5vw,64px);border-radius:50%;
     background: radial-gradient(circle at 35% 30%, #d9f7f1 0%, #7fd3c7 20%, #3aa79a 55%, #155953 90%);
     box-shadow: 0 12px 40px rgba(60,160,140,0.12), inset 0 -6px 18px rgba(0,0,0,0.06);
     display:flex;align-items:center;justify-content:center;
     transform-origin:center;
     animation: gentleSpin 18s linear infinite;
     border:1px solid rgba(255,255,255,0.04);
+    flex:0 0 auto;
   }
   @keyframes gentleSpin{to{transform:rotate(360deg)}}
 
-  .brand h1{font-size:18px;margin:0;font-weight:800;letter-spacing:.6px}
-  .brand p{margin:2px 0 0;font-size:12px;color:var(--muted)}
+  .brand h1{font-size:clamp(16px,2.7vw,20px);margin:0;font-weight:800;letter-spacing:.6px;white-space:nowrap}
+  .brand p{margin:2px 0 0;font-size:clamp(11px,2.2vw,12px);color:var(--muted);white-space:nowrap}
 
   /* Top nav */
-  nav.top-nav{display:flex;gap:10px;align-items:center}
+  nav.top-nav{display:flex;gap:10px;align-items:center;max-width:100%;overflow:auto;-webkit-overflow-scrolling:touch;padding-bottom:6px}
+  nav.top-nav::-webkit-scrollbar{height:6px}
+  nav.top-nav::-webkit-scrollbar-thumb{background:rgba(255,255,255,.12);border-radius:999px}
   .nav-btn{
     display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border-radius:999px;
     background:transparent;border:1px solid rgba(255,255,255,0.03);
     color:var(--text);font-weight:700;font-size:13px;cursor:pointer;
     transition:transform .28s, box-shadow .28s, background .28s;
     backdrop-filter: blur(6px);
+    white-space:nowrap;
   }
   .nav-btn svg{width:18px;height:18px;display:block}
+  .nav-btn .label{display:inline}
   .nav-btn:hover{transform:translateY(-6px) scale(1.03);box-shadow:0 12px 30px rgba(60,160,140,0.12)}
   .nav-btn.active{background:linear-gradient(90deg, rgba(127,211,199,0.12), rgba(58,167,154,0.06));box-shadow:0 14px 36px rgba(58,167,154,0.12)}
 
-  /* Viewport */
+  /* Viewport (uses dynamic viewport units for mobile UI chrome) */
   main.viewport{
-    position:fixed;left:0;right:0;top:86px;bottom:0;overflow:hidden;padding:28px 5%;
+    position:fixed;left:0;right:0;
+    top:calc(64px + env(safe-area-inset-top)); /* header approx; grows with content */
+    bottom:0;
+    height:calc(100dvh - (64px + env(safe-area-inset-top)));
+    overflow:hidden;
+    padding: var(--space) clamp(16px,4vw,5%);
     z-index:20;display:flex;align-items:center;justify-content:center;
   }
 
   /* Panels container */
   .panels{
-    width:1200px;max-width:calc(100% - 80px);height:calc(100% - 120px);
+    width:min(1200px, 100%);
+    height:100%;
     position:relative;
-    overflow:visible;
-    display:flex;align-items:center;justify-content:center;
+    display:flex;align-items:stretch;justify-content:center;
   }
 
   /* Panel base */
   .panel{
     position:absolute;inset:0;margin:auto;
-    width:100%;height:100%;max-height:980px;
-    display:grid;grid-template-columns: 1fr 480px;gap:36px;align-items:center;
-    padding:48px;border-radius:20px;
+    width:100%;height:100%;
+    display:grid;grid-template-columns: 1fr minmax(300px, 480px);gap:var(--panel-gap);align-items:start;
+    padding:clamp(16px, 3.5vw, 48px);border-radius:var(--panel-radius);
     background: linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.006));
     border: 1px solid rgba(255,255,255,0.03);
     box-shadow: var(--soft-shadow);
     transform: translateX(140%) scale(.98);
     opacity:0;transition: transform .8s cubic-bezier(.2,.9,.25,1), opacity .5s;
     will-change: transform, opacity;
-    overflow: hidden;
+    overflow-y:auto; /* key: vertical scroll inside panel */
+    overflow-x:hidden;
+    -webkit-overflow-scrolling: touch;
   }
   .panel.active{transform: translateX(0) scale(1);opacity:1;z-index:30}
 
   /* Panel inner content */
-  .content{
-    padding-right:6%;
-    max-width:920px;
-  }
-  .panel-title{font-size:40px;color:var(--accent-1);margin:0 0 10px 0;letter-spacing:.4px}
-  .lead{font-size:18px;color:var(--muted);line-height:1.6;margin-bottom:18px}
+  .content{padding-right:4%;max-width:920px;min-height:0}
+  .panel-title{font-size:var(--title);color:var(--accent-1);margin:0 0 10px 0;letter-spacing:.4px}
+  .lead{font-size:var(--lead);color:var(--muted);line-height:1.6;margin-bottom:var(--space)}
   .card-blurb{
     background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.008));
-    padding:18px;border-radius:14px;border:1px solid var(--card-border);
+    padding:14px;border-radius:14px;border:1px solid var(--card-border);
   }
 
-  .facts{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:18px}
+  .facts{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:12px}
   .fact{background:rgba(255,255,255,0.02);padding:10px;border-radius:10px;font-weight:600;color:var(--muted);font-size:13px}
 
   /* Right column - vector illustration + mini-card */
   .media{
-    display:flex;flex-direction:column;align-items:center;gap:18px;justify-content:center;padding-left:6%;
+    display:flex;flex-direction:column;align-items:center;gap:14px;justify-content:flex-start;padding-left:4%;
+    min-height:0
   }
 
-  .illustration-wrap, .sun-illustration-container{
-    width:100%;max-width:460px;height:420px;border-radius:16px;
+  .illustration-wrap, .earth-illustration-container{
+    width:100%;max-width:460px;height:clamp(240px, 35vh, 420px);border-radius:16px;
     display:flex;align-items:center;justify-content:center;
     background:linear-gradient(180deg, rgba(0,0,0,0.15), rgba(0,0,0,0.10));
     border:1px solid rgba(255,255,255,0.03);
     box-shadow: 0 18px 50px rgba(0,0,0,0.5);
-    overflow:hidden;position:relative;
+    overflow:hidden;position:relative;flex:0 0 auto;
   }
 
   /* SVG container scales nicely */
@@ -143,11 +160,11 @@
     transition: transform .8s cubic-bezier(.2,.9,.25,1), filter .6s;
     filter: drop-shadow(0 12px 40px rgba(0,0,0,0.12));
   }
-  .illustration-wrap:hover .illustration, .sun-illustration-container:hover .illustration{ transform: scale(1.03) rotate(-3deg) }
+  .illustration-wrap:hover .illustration, .earth-illustration-container:hover .illustration{ transform: scale(1.03) rotate(-3deg) }
 
   .meta-card{
     width:100%;padding:12px;border-radius:12px;background:rgba(255,255,255,0.02);
-    border:1px solid var(--card-border);display:flex;gap:12px;align-items:center;
+    border:1px solid var(--card-border);display:flex;gap:12px;align-items:center;flex:0 0 auto;
   }
   .meta-card .dot{width:14px;height:14px;border-radius:50%;background:var(--accent-1)}
   .meta-card p{margin:0;font-size:13px;color:var(--muted)}
@@ -161,30 +178,47 @@
 
   /* Responsive */
   @media (max-width:1100px){
-    .panels{max-width:calc(100% - 60px)}
-    .panel{grid-template-columns: 1fr 380px;padding:32px}
-    .illustration-wrap{height:360px}
+    .content{padding-right:0}
+    .media{padding-left:0}
   }
   @media (max-width:900px){
-    main.viewport{padding:18px}
-    .panel{grid-template-columns:1fr;padding:22px;border-radius:14px}
-    .illustration-wrap{max-width:100%;height:320px}
+    main.viewport{padding: var(--space)}
+    .panel{grid-template-columns:1fr}
+    .earth-illustration-container{max-width:100%}
+    .facts{grid-template-columns:1fr 1fr}
+  }
+  @media (max-width:720px){
+    .brand p{display:none}
+    .nav-btn{padding:8px 10px;font-size:0}
+    .nav-btn .label{display:none}
+    .nav-btn svg{width:20px;height:20px}
   }
   @media (max-width:640px){
-    .panel{grid-template-columns:1fr;gap:18px;padding:18px;align-items:flex-start}
-    .media{order:-1;padding-left:0}
-    .illustration-wrap{height:260px}
-    .panel-title{font-size:28px}
+    .panel{gap:var(--panel-gap);padding: clamp(12px, 3.5vw, 18px);align-items:flex-start}
+    .media{order:-1}
+    .earth-illustration-container{height:clamp(220px, 34vh, 320px)}
+    .panel-title{font-size:clamp(20px,6vw,28px)}
+    .facts{grid-template-columns:1fr}
+    .side-progress{
+      right:unset;left:0;right:0;bottom:env(safe-area-inset-bottom);top:auto;transform:none;
+      flex-direction:row;justify-content:center;gap:10px;padding:10px 0;z-index:45
+    }
+    .dot-btn{width:12px;height:12px}
   }
 
   /* staging reveals */
   .stagger{opacity:0;transform:translateY(8px);transition: all .6s cubic-bezier(.2,.9,.25,1)}
   .stagger.show{opacity:1;transform:none}
+
+  /* Reduced motion */
+  @media (prefers-reduced-motion: reduce){
+    *{animation: none !important; transition: none !important}
+  }
 </style>
 </head>
 <body>
 
-<!-- Partículas (canvas) -->
+<!-- Subtle particles (canvas) -->
 <canvas id="particle-canvas" style="position:fixed;inset:0;z-index:5;pointer-events:none"></canvas>
 
 <header class="app-header" role="banner">
@@ -198,30 +232,30 @@
       </svg>
     </div>
     <div>
-      <h1>LA TIERRA</h1>
-      <p>Explorador vectorial — técnico</p>
+      <h1>EARTH</h1>
+      <p>Technical vector explorer</p>
     </div>
   </div>
 
-  <nav class="top-nav" role="navigation" aria-label="Navegación principal">
-    <button class="nav-btn active" data-target="0" aria-pressed="true" title="Composición y estructura">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
-      Estructura
+  <nav class="top-nav" role="navigation" aria-label="Main navigation">
+    <button class="nav-btn active" data-target="0" aria-pressed="true" title="Composition & structure" aria-label="Structure">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+      <span class="label">Structure</span>
     </button>
 
-    <button class="nav-btn" data-target="1" title="Atmósfera">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h18"/><path d="M12 2v4"/></svg>
-      Atmósfera
+    <button class="nav-btn" data-target="1" title="Atmosphere" aria-label="Atmosphere">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12h18"/><path d="M12 2v4"/></svg>
+      <span class="label">Atmosphere</span>
     </button>
 
-    <button class="nav-btn" data-target="2" title="Movimiento y órbita">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 3v9l3 3"/></svg>
-      Órbita
+    <button class="nav-btn" data-target="2" title="Motion & orbit" aria-label="Orbit">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 3v9l3 3"/></svg>
+      <span class="label">Orbit</span>
     </button>
 
-    <button class="nav-btn" data-target="3" title="Influencia y curiosidades">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l2 5 5 .5-4 3 1.5 5L12 14l-4.5 2.5L9 10 5 7.5 10 7z"/></svg>
-      Curiosidades
+    <button class="nav-btn" data-target="3" title="Influence & curiosities" aria-label="Curiosities">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2l2 5 5 .5-4 3 1.5 5L12 14l-4.5 2.5L9 10 5 7.5 10 7z"/></svg>
+      <span class="label">Curiosities</span>
     </button>
   </nav>
 </header>
@@ -229,30 +263,30 @@
 <main class="viewport" role="main">
   <div class="panels">
 
-    <!-- PANEL 0: Composición y estructura -->
+    <!-- PANEL 0: Composition & structure -->
     <section class="panel active" data-index="0" id="panel-0" aria-labelledby="title-0" role="region">
       <div class="content">
-        <h2 id="title-0" class="panel-title stagger show">Composición y estructura</h2>
-        <p class="lead stagger show" style="transition-delay:.05s">La Tierra es un planeta rocoso compuesto por <strong>núcleo metálico</strong>, <strong>manto</strong> y <strong>corteza</strong>. Su tectónica de placas crea volcanes, montañas y la dinámica que modela la superficie.</p>
+        <h2 id="title-0" class="panel-title stagger show">Composition & structure</h2>
+        <p class="lead stagger show" style="transition-delay:.05s">Earth is a rocky planet composed of a <strong>metallic core</strong>, <strong>mantle</strong>, and <strong>crust</strong>. Plate tectonics creates volcanoes and mountain ranges and drives the ever-changing surface.</p>
 
         <div class="card-blurb stagger show" style="transition-delay:.12s">
-          <strong>Núcleo:</strong> núcleo interno sólido y externo líquido que generan el campo magnético. <br>
-          <strong>Manto:</strong> convección y deformación que mueve placas. <br>
-          <strong>Corteza:</strong> placas tectónicas, océanos y cadenas montañosas.
+          <strong>Core:</strong> solid inner and liquid outer core generate the magnetic field. <br>
+          <strong>Mantle:</strong> convection and deformation move plates. <br>
+          <strong>Crust:</strong> tectonic plates, oceans, and mountain belts.
         </div>
 
         <div class="facts stagger show" style="transition-delay:.20s">
-          <div class="fact"><strong>Tipo:</strong> Planeta rocoso (telúrico)</div>
-          <div class="fact"><strong>Estructura:</strong> Núcleo, manto, corteza</div>
-          <div class="fact"><strong>Superficie:</strong> océanos, continentes, montañas</div>
-          <div class="fact"><strong>Tectónica:</strong> placas activas</div>
+          <div class="fact"><strong>Type:</strong> Rocky (terrestrial) planet</div>
+          <div class="fact"><strong>Structure:</strong> Core, mantle, crust</div>
+          <div class="fact"><strong>Surface:</strong> oceans, continents, mountains</div>
+          <div class="fact"><strong>Tectonics:</strong> active plates</div>
         </div>
       </div>
 
       <aside class="media">
-        <div class="sun-illustration-container" aria-hidden="false">
+        <div class="earth-illustration-container" aria-hidden="false">
           <!-- SVG: schematic cross-section of Earth (technical) -->
-          <svg class="illustration" viewBox="0 0 800 720" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Corte transversal de la Tierra">
+          <svg class="illustration" viewBox="0 0 800 720" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Earth cross-section">
             <defs>
               <linearGradient id="mantleGrad" x1="0" x2="1">
                 <stop offset="0%" stop-color="#f6efdd"/>
@@ -285,57 +319,57 @@
 
               <!-- labels -->
               <g transform="translate(-240,-160)" fill="#fff" font-size="14" opacity="0.95">
-                <text x="0" y="0">Corteza (placas)</text>
+                <text x="0" y="0">Crust (plates)</text>
               </g>
               <g transform="translate(-120,-20)" fill="#fff" font-size="13" opacity="0.95">
-                <text x="0" y="0">Manto — convección</text>
+                <text x="0" y="0">Mantle — convection</text>
               </g>
               <g transform="translate(-60,120)" fill="#fff" font-size="13" opacity="0.95">
-                <text x="0" y="0">Núcleo (generador magnético)</text>
+                <text x="0" y="0">Core (magnetic dynamo)</text>
               </g>
             </g>
 
             <!-- small legend -->
             <g transform="translate(40,520)">
               <rect x="0" y="0" width="320" height="70" rx="8" fill="rgba(255,255,255,0.02)"/>
-              <text x="14" y="26" font-size="12" fill="#fff">Corteza → Manto → Núcleo</text>
-              <text x="14" y="46" font-size="11" fill="#cfeee6">Placas tectónicas activas — volcanismo y orogénesis</text>
+              <text x="14" y="26" font-size="12" fill="#fff">Crust → Mantle → Core</text>
+              <text x="14" y="46" font-size="11" fill="#cfeee6">Active plates — volcanism and mountain building</text>
             </g>
           </svg>
         </div>
 
         <div class="meta-card">
           <div style="flex:1">
-            <div style="font-weight:800">Resumen rápido</div>
-            <p style="margin:6px 0 0 0;color:var(--muted);font-size:13px">Estructura por capas con dinámica interna que sostiene la tectónica y el campo magnético.</p>
+            <div style="font-weight:800">Quick summary</div>
+            <p style="margin:6px 0 0 0;color:var(--muted);font-size:13px">Layered structure with internal dynamics that sustain plate tectonics and the magnetic field.</p>
           </div>
           <div class="dot" aria-hidden="true"></div>
         </div>
       </aside>
     </section>
 
-    <!-- PANEL 1: Atmósfera -->
+    <!-- PANEL 1: Atmosphere -->
     <section class="panel" data-index="1" id="panel-1" aria-labelledby="title-1" role="region">
       <div class="content">
-        <h2 id="title-1" class="panel-title stagger">Atmósfera</h2>
-        <p class="lead stagger" style="transition-delay:.05s">La atmósfera terrestre está compuesta principalmente de <strong>nitrógeno (≈78%)</strong> y <strong>oxígeno (≈21%)</strong>, además de trazas de otros gases. Es esencial para la vida, filtra radiación dañina y regula la temperatura.</p>
+        <h2 id="title-1" class="panel-title stagger">Atmosphere</h2>
+        <p class="lead stagger" style="transition-delay:.05s">Earth’s atmosphere is composed mainly of <strong>nitrogen (≈78%)</strong> and <strong>oxygen (≈21%)</strong>, with traces of other gases. It is essential for life, filters harmful radiation, and regulates temperature.</p>
 
         <div class="card-blurb stagger" style="transition-delay:.12s">
-          La atmósfera (troposfera, estratosfera, mesosfera, termosfera) contiene capas con funciones distintas: clima, ozono protector y enlaces con la magnetosfera.
+          The atmosphere (troposphere, stratosphere, mesosphere, thermosphere) includes layers with distinct functions: weather, protective ozone, and coupling with the magnetosphere.
         </div>
 
         <div class="facts stagger" style="transition-delay:.20s">
-          <div class="fact"><strong>Composición:</strong> N₂, O₂, Ar, CO₂ (trazas)</div>
-          <div class="fact"><strong>Función:</strong> protección, regulación térmica</div>
-          <div class="fact"><strong>Capas:</strong> troposfera → estratosfera → termosfera</div>
-          <div class="fact"><strong>Ozon:</strong> filtra UV</div>
+          <div class="fact"><strong>Composition:</strong> N₂, O₂, Ar, CO₂ (traces)</div>
+          <div class="fact"><strong>Role:</strong> protection, thermal regulation</div>
+          <div class="fact"><strong>Layers:</strong> troposphere → stratosphere → thermosphere</div>
+          <div class="fact"><strong>Ozone:</strong> UV filter</div>
         </div>
       </div>
 
       <aside class="media">
-        <div class="sun-illustration-container">
+        <div class="earth-illustration-container">
           <!-- SVG: schematic atmosphere layers + ozone shield -->
-          <svg class="illustration" viewBox="0 0 800 600" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Ilustración de la atmósfera terrestre">
+          <svg class="illustration" viewBox="0 0 800 600" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Earth’s atmosphere illustration">
             <defs>
               <linearGradient id="atm1" x1="0" x2="0"><stop offset="0%" stop-color="#bfeee6"/><stop offset="100%" stop-color="#8fd9c9"/></linearGradient>
             </defs>
@@ -353,8 +387,8 @@
             <!-- layer labels -->
             <g transform="translate(80,420)">
               <rect x="0" y="0" width="640" height="82" rx="10" fill="rgba(255,255,255,0.02)"/>
-              <text x="18" y="24" font-size="13" fill="#fff">Capas atmosféricas (esquema): Troposfera → Estratosfera (ozono) → Mesosfera → Termosfera</text>
-              <text x="18" y="48" font-size="12" fill="#cfeee6">Nitrógeno y Oxígeno dominan; ozono filtra UV; atmósfera mantiene temperatura estable para la vida.</text>
+              <text x="18" y="24" font-size="13" fill="#fff">Atmospheric layers (schematic): Troposphere → Stratosphere (ozone) → Mesosphere → Thermosphere</text>
+              <text x="18" y="48" font-size="12" fill="#cfeee6">Nitrogen & Oxygen dominate; ozone filters UV; the atmosphere keeps temperatures hospitable for life.</text>
             </g>
 
             <!-- ozone badge -->
@@ -367,36 +401,36 @@
 
         <div class="meta-card">
           <div style="flex:1">
-            <div style="font-weight:800">Dato</div>
-            <p style="margin:6px 0 0 0;color:var(--muted);font-size:13px">La atmósfera no solo soporta la vida: actúa como sistema térmico y protector frente a radiación.</p>
+            <div style="font-weight:800">Fact</div>
+            <p style="margin:6px 0 0 0;color:var(--muted);font-size:13px">The atmosphere doesn’t just support life — it acts as a thermal regulator and radiation shield.</p>
           </div>
           <div class="dot" aria-hidden="true"></div>
         </div>
       </aside>
     </section>
 
-    <!-- PANEL 2: Movimiento y órbita -->
+    <!-- PANEL 2: Motion & orbit -->
     <section class="panel" data-index="2" id="panel-2" aria-labelledby="title-2" role="region">
       <div class="content">
-        <h2 id="title-2" class="panel-title stagger">Movimiento y órbita</h2>
-        <p class="lead stagger" style="transition-delay:.05s">La Tierra tarda <strong>365.25 días</strong> en completar una órbita alrededor del Sol. Gira sobre su eje cada <strong>24 horas</strong>, lo que genera el ciclo día-noche. La inclinación del eje (~23.4°) produce las estaciones.</p>
+        <h2 id="title-2" class="panel-title stagger">Motion & orbit</h2>
+        <p class="lead stagger" style="transition-delay:.05s">Earth takes <strong>365.25 days</strong> to complete one orbit around the Sun. It rotates once every <strong>24 hours</strong>, producing the day–night cycle. Axial tilt (~23.4°) causes the seasons.</p>
 
         <div class="card-blurb stagger" style="transition-delay:.12s">
-          La combinación de órbita elíptica y la inclinación axial determina distribución estacional de la energía solar en la superficie.
+          The combination of an elliptical orbit and axial tilt determines the seasonal distribution of solar energy at the surface.
         </div>
 
         <div class="facts stagger" style="transition-delay:.20s">
-          <div class="fact"><strong>Año:</strong> 365.25 días</div>
-          <div class="fact"><strong>Rotación:</strong> ~24 h (día)</div>
-          <div class="fact"><strong>Inclinación:</strong> ~23.4° → estaciones</div>
-          <div class="fact"><strong>Órbita:</strong> casi circular (ligera excentricidad)</div>
+          <div class="fact"><strong>Year:</strong> 365.25 days</div>
+          <div class="fact"><strong>Rotation:</strong> ~24 h (day)</div>
+          <div class="fact"><strong>Tilt:</strong> ~23.4° → seasons</div>
+          <div class="fact"><strong>Orbit:</strong> near-circular (slight eccentricity)</div>
         </div>
       </div>
 
       <aside class="media">
-        <div class="sun-illustration-container">
+        <div class="earth-illustration-container">
           <!-- SVG: orbit diagram + axial tilt -->
-          <svg class="illustration" viewBox="0 0 800 600" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Ilustración de la órbita y rotación de la Tierra">
+          <svg class="illustration" viewBox="0 0 800 600" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Earth orbit & rotation illustration">
             <rect width="100%" height="100%" fill="transparent"/>
             <!-- Sun -->
             <g transform="translate(400,300)">
@@ -411,56 +445,56 @@
                 <circle r="16" fill="#1f8b72" stroke="#0b4b3e" stroke-width="2"/>
                 <!-- axis tilt indicator -->
                 <line x1="-8" y1="-20" x2="8" y2="20" stroke="#cfeee6" stroke-width="2" stroke-linecap="round" transform="rotate(23.4)"/>
-                <text x="-12" y="44" font-size="12" fill="#fff">Tierra</text>
+                <text x="-14" y="44" font-size="12" fill="#fff">Earth</text>
               </g>
             </g>
 
             <!-- annotation -->
             <g transform="translate(40,420)">
               <rect x="0" y="0" width="640" height="60" rx="10" fill="rgba(255,255,255,0.02)" stroke="#183a36"/>
-              <text x="18" y="36" font-size="13" fill="#fff">Órbita: 365.25 días — Rotación: 24 h — Inclinación axial ≈ 23.4° → estaciones</text>
+              <text x="18" y="36" font-size="13" fill="#fff">Orbit: 365.25 days — Rotation: 24 h — Axial tilt ≈ 23.4° → seasons</text>
             </g>
           </svg>
         </div>
 
         <div class="meta-card">
           <div style="flex:1">
-            <div style="font-weight:800">Movimiento</div>
-            <p style="margin:6px 0 0 0;color:var(--muted);font-size:13px">Rotación y órbita combinadas producen el ritmo diario y las estaciones que modelan el clima global.</p>
+            <div style="font-weight:800">Motion</div>
+            <p style="margin:6px 0 0 0;color:var(--muted);font-size:13px">Rotation plus orbital motion produce daily rhythms and seasons that shape global climate.</p>
           </div>
           <div class="dot" aria-hidden="true"></div>
         </div>
       </aside>
     </section>
 
-    <!-- PANEL 3: Influencia y curiosidades -->
+    <!-- PANEL 3: Influence & curiosities -->
     <section class="panel" data-index="3" id="panel-3" aria-labelledby="title-3" role="region">
       <div class="content">
-        <h2 id="title-3" class="panel-title stagger">Influencia y curiosidades</h2>
-        <p class="lead stagger" style="transition-delay:.05s">La Tierra es el único planeta conocido con vida. Tiene una <strong>Luna</strong> y un <strong>campo magnético</strong> robusto que protege la superficie de la radiación solar y cósmica.</p>
+        <h2 id="title-3" class="panel-title stagger">Influence & curiosities</h2>
+        <p class="lead stagger" style="transition-delay:.05s">Earth is the only known planet with life. It has a <strong>Moon</strong> and a robust <strong>magnetic field</strong> that shields the surface from solar and cosmic radiation.</p>
 
         <div class="card-blurb stagger" style="transition-delay:.12s">
-          El campo magnético proviene del núcleo externo líquido; la Luna estabiliza la inclinación axial y afecta las mareas — ambos factores influyen en el clima y la habitabilidad.
+          The magnetic field originates in the liquid outer core; the Moon stabilizes axial tilt and drives tides — both influence climate and habitability.
         </div>
 
         <div class="facts stagger" style="transition-delay:.20s">
-          <div class="fact"><strong>Vida:</strong> único planeta conocido</div>
-          <div class="fact"><strong>Luna:</strong> presente — influencia mareas</div>
-          <div class="fact"><strong>Campo magnético:</strong> fuerte — protección</div>
-          <div class="fact"><strong>Agua:</strong> océanos cubren ~71% de la superficie</div>
+          <div class="fact"><strong>Life:</strong> only known planet</div>
+          <div class="fact"><strong>Moon:</strong> present — strong tidal influence</div>
+          <div class="fact"><strong>Magnetic field:</strong> strong — protective</div>
+          <div class="fact"><strong>Water:</strong> oceans cover ~71% of the surface</div>
         </div>
       </div>
 
       <aside class="media">
-        <div class="sun-illustration-container">
+        <div class="earth-illustration-container">
           <!-- SVG: magnetosphere + Moon + ocean emphasis -->
-          <svg class="illustration" viewBox="0 0 800 600" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Ilustración de la magnetosfera y la Luna">
+          <svg class="illustration" viewBox="0 0 800 600" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Magnetosphere and Moon">
             <rect width="100%" height="100%" fill="transparent"/>
 
             <!-- Earth -->
             <g transform="translate(260,300)">
               <circle r="64" fill="#1f8b72" stroke="#0b4b3e" stroke-width="3"/>
-              <text x="-36" y="86" font-size="12" fill="#fff">Océanos (~71%)</text>
+              <text x="-46" y="86" font-size="12" fill="#fff">Oceans (~71%)</text>
             </g>
 
             <!-- magnetosphere arcs -->
@@ -472,22 +506,22 @@
             <!-- Moon -->
             <g transform="translate(520,220)">
               <circle r="20" fill="#e6e6e6" stroke="#cfcfcf" stroke-width="2"/>
-              <text x="-18" y="40" font-size="12" fill="#fff">Luna</text>
+              <text x="-12" y="40" font-size="12" fill="#fff">Moon</text>
             </g>
 
             <!-- legend -->
             <g transform="translate(40,440)">
               <rect x="0" y="0" width="640" height="70" rx="8" fill="rgba(255,255,255,0.02)"/>
-              <text x="14" y="26" font-size="13" fill="#fff">Campo magnético desvía partículas cargadas — protege la biosfera.</text>
-              <text x="14" y="46" font-size="11" fill="#cfeee6">La Luna estabiliza la inclinación axial y genera mareas importantes para procesos biológicos.</text>
+              <text x="14" y="26" font-size="13" fill="#fff">Magnetic field deflects charged particles — protects the biosphere.</text>
+              <text x="14" y="46" font-size="11" fill="#cfeee6">The Moon stabilizes axial tilt and generates tides, key for many biological processes.</text>
             </g>
           </svg>
         </div>
 
         <div class="meta-card">
           <div style="flex:1">
-            <div style="font-weight:800">Perspectiva</div>
-            <p style="margin:6px 0 0 0;color:var(--muted);font-size:13px">La combinación de atmósfera, agua, campo magnético y luna hacen de la Tierra un entorno excepcionalmente habitable.</p>
+            <div style="font-weight:800">Perspective</div>
+            <p style="margin:6px 0 0 0;color:var(--muted);font-size:13px">Atmosphere, water, magnetic field, and the Moon together make Earth exceptionally habitable.</p>
           </div>
           <div class="dot" aria-hidden="true"></div>
         </div>
@@ -498,22 +532,22 @@
 </main>
 
 <!-- side progress -->
-<div class="side-progress" aria-hidden="false">
-  <div class="dot-btn active" data-target="0" title="Estructura"></div>
-  <div class="dot-btn" data-target="1" title="Atmósfera"></div>
-  <div class="dot-btn" data-target="2" title="Órbita"></div>
-  <div class="dot-btn" data-target="3" title="Curiosidades"></div>
+<div class="side-progress" aria-label="Section progress">
+  <button class="dot-btn active" data-target="0" title="Structure" aria-label="Go to Structure"></button>
+  <button class="dot-btn" data-target="1" title="Atmosphere" aria-label="Go to Atmosphere"></button>
+  <button class="dot-btn" data-target="2" title="Orbit" aria-label="Go to Orbit"></button>
+  <button class="dot-btn" data-target="3" title="Curiosities" aria-label="Go to Curiosities"></button>
 </div>
 
 <script>
 /* ---------------------------
-   Partículas sutiles - Canvas
+   Subtle particles - Canvas
    --------------------------- */
 (function particles(){
   const canvas = document.getElementById('particle-canvas');
   const ctx = canvas.getContext('2d');
   let w = canvas.width = innerWidth, h = canvas.height = innerHeight;
-  window.addEventListener('resize', ()=>{ w=canvas.width=innerWidth; h=canvas.height=innerHeight; });
+  addEventListener('resize', ()=>{ w=canvas.width=innerWidth; h=canvas.height=innerHeight; });
 
   const N = Math.round((w*h)/70000);
   const parts = Array.from({length: Math.max(60, N)}, ()=>({
@@ -553,31 +587,25 @@ const dots = Array.from(document.querySelectorAll('.dot-btn'));
 let current = 0;
 const STAGGER_DELAY = 90;
 
+function clamp(n,a,b){ return Math.max(a, Math.min(b, n)); }
+
 function setActive(index, direction=1){
+  index = clamp(index, 0, panels.length-1);
   if(index === current) return;
-  // clamp
-  index = Math.max(0, Math.min(panels.length-1, index));
-  const prev = current;
-  const next = index;
-  // remove active from previous
-  panels[prev].classList.remove('active');
-  navBtns[prev].classList.remove('active');
-  navBtns[prev].setAttribute('aria-pressed','false');
-  dots[prev].classList.remove('active');
 
-  // activate next
-  panels[next].classList.add('active');
-  navBtns[next].classList.add('active');
-  navBtns[next].setAttribute('aria-pressed','true');
-  dots[next].classList.add('active');
+  panels[current].classList.remove('active');
+  navBtns[current].classList.remove('active');
+  navBtns[current].setAttribute('aria-pressed','false');
+  dots[current].classList.remove('active');
 
-  // reveal staggered children for polish
-  revealStagger(panels[next]);
+  panels[index].classList.add('active');
+  navBtns[index].classList.add('active');
+  navBtns[index].setAttribute('aria-pressed','true');
+  dots[index].classList.add('active');
 
-  // update current
-  current = next;
-  // update URL hash (optional)
-  history.replaceState(null, '', '#p' + next);
+  revealStagger(panels[index]);
+  current = index;
+  history.replaceState(null, '', '#p'+index);
 }
 
 function revealStagger(panelEl){
@@ -588,43 +616,39 @@ function revealStagger(panelEl){
   });
 }
 
-// init nav click
+// click handlers
 navBtns.forEach(b => b.addEventListener('click', ()=> {
   const target = Number(b.dataset.target);
   setActive(target, target > current ? 1 : -1);
 }));
-
 dots.forEach(d => d.addEventListener('click', ()=> {
   const target = Number(d.dataset.target);
   setActive(target, target > current ? 1 : -1);
 }));
 
-// keyboard navigation
-window.addEventListener('keydown', e => {
-  if(e.key === 'ArrowRight'){ if(current < panels.length-1) setActive(current+1,1); }
-  if(e.key === 'ArrowLeft'){ if(current > 0) setActive(current-1,-1); }
+// keyboard
+addEventListener('keydown', e => {
+  if(e.key === 'ArrowRight' || e.key === 'ArrowDown'){ setActive(current+1, 1); }
+  if(e.key === 'ArrowLeft'  || e.key === 'ArrowUp'){   setActive(current-1, -1); }
 });
 
-// swipe support
+// swipe
 (function swipe(){
   let sx=0, sy=0;
-  window.addEventListener('touchstart', e => {
-    sx = e.touches[0].clientX; sy = e.touches[0].clientY;
-  }, {passive:true});
-  window.addEventListener('touchend', e => {
-    const ex = e.changedTouches[0].clientX;
-    const dx = ex - sx;
-    if(Math.abs(dx) > 50){
-      if(dx < 0 && current < panels.length-1) setActive(current+1,1);
-      if(dx > 0 && current > 0) setActive(current-1,-1);
+  addEventListener('touchstart', e => { sx = e.touches[0].clientX; sy = e.touches[0].clientY; }, {passive:true});
+  addEventListener('touchend', e => {
+    const ex = e.changedTouches[0].clientX, ey = e.changedTouches[0].clientY;
+    const dx = ex - sx, dy = ey - sy;
+    if(Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy)){
+      if(dx < 0) setActive(current+1,1);
+      if(dx > 0) setActive(current-1,-1);
     }
   }, {passive:true});
 })();
 
-// Reveal first panel on load (stagger children)
+// init
 document.addEventListener('DOMContentLoaded', ()=> {
   revealStagger(panels[0]);
-  // if URL has hash like #p2 open it
   const hash = window.location.hash;
   if(hash && hash.startsWith('#p')){
     const idx = parseInt(hash.slice(2));

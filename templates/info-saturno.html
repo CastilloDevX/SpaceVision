@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
-  <title>Saturno — Explorador Vectorial</title>
-  <!-- Fuente -->
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>Saturn — Vector Explorer</title>
+  <!-- Typography -->
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;800&display=swap" rel="stylesheet">
   <style>
     :root{
@@ -17,8 +17,17 @@
       --text: #f7f6f2;
       --muted: rgba(247,246,242,0.78);
       --soft-shadow: 0 12px 40px rgba(0,0,0,0.6);
-      --radius: 18px;
+
+      /* Fluid sizes */
+      --space: clamp(14px, 2.2vw, 24px);
+      --panel-gap: clamp(16px, 3vw, 36px);
+      --panel-radius: clamp(12px, 2.2vw, 20px);
+      --title: clamp(24px, 4vw, 40px);
+      --lead: clamp(15px, 2.2vw, 18px);
+
+      --focus: 0 0 0 3px rgba(255,216,107,.45), 0 0 0 6px rgba(255,216,107,.18);
     }
+
     /* Reset */
     *{box-sizing:border-box}
     html,body{height:100%}
@@ -32,75 +41,104 @@
         linear-gradient(180deg,var(--bg1),var(--bg2) 60%, #000 100%);
       -webkit-font-smoothing:antialiased;
       -moz-osx-font-smoothing:grayscale;
-      overflow:hidden;
+      overflow:hidden; /* page doesn't scroll; panels do */
     }
 
-    /* Top header */
+    /* Skip to content */
+    .skip-link{
+      position:fixed;left:12px;top:10px;z-index:1000;
+      background:#111;color:#fff;padding:8px 12px;border-radius:10px;
+      transform:translateY(-140%);transition:transform .2s;
+    }
+    .skip-link:focus{transform:translateY(0);outline:none;box-shadow:var(--focus)}
+
+    /* Header */
     header.app-header{
-      position:fixed;left:0;right:0;top:0;height:86px;
+      position:fixed;inset:0 0 auto 0;height:auto;
       display:flex;align-items:center;justify-content:space-between;
-      padding:14px 28px;gap:18px;z-index:60;
+      padding: calc(env(safe-area-inset-top) + 12px) clamp(16px,4vw,28px) 12px;
+      gap:18px;z-index:60;
       background:linear-gradient(180deg, rgba(0,0,0,0.12), rgba(0,0,0,0.06));
       border-bottom:1px solid rgba(255,255,255,0.03);
       backdrop-filter: blur(6px);
     }
-    .brand{display:flex;align-items:center;gap:16px}
+    .brand{display:flex;align-items:center;gap:16px;min-width:0}
     .sat-emblem{
-      width:64px;height:64px;border-radius:50%;
+      width:clamp(48px,6.5vw,64px);height:clamp(48px,6.5vw,64px);border-radius:50%;
       background: radial-gradient(circle at 30% 25%, #fffaf0 0%, #ffe5a8 12%, #ffcf7a 40%, #d8a36f 75%);
       box-shadow: 0 12px 40px rgba(255,160,60,0.10), inset 0 -6px 18px rgba(0,0,0,0.06);
       display:flex;align-items:center;justify-content:center; transform-origin:center;
       border:1px solid rgba(255,255,255,0.04);
+      position:relative;overflow:visible;
     }
-    .brand h1{font-size:18px;margin:0;font-weight:800;letter-spacing:.6px}
-    .brand p{margin:2px 0 0;font-size:12px;color:var(--muted)}
+    /* subtle ring */
+    .sat-emblem::after{
+      content:"";position:absolute;inset:-8px;left:-14px;right:-14px;top:40%;height:14px;
+      border-radius:999px;border:2px solid rgba(255,230,180,0.45);filter:blur(.2px);
+      transform:rotate(-18deg);
+    }
+    .brand h1{font-size:clamp(16px,2.7vw,20px);margin:0;font-weight:800;letter-spacing:.6px;white-space:nowrap}
+    .brand p{margin:2px 0 0;font-size:clamp(11px,2.2vw,12px);color:var(--muted);white-space:nowrap}
 
     /* Top nav */
-    nav.top-nav{display:flex;gap:10px;align-items:center}
+    nav.top-nav{display:flex;gap:10px;align-items:center;max-width:100%;overflow:auto;-webkit-overflow-scrolling:touch;padding-bottom:6px}
+    nav.top-nav::-webkit-scrollbar{height:6px}
+    nav.top-nav::-webkit-scrollbar-thumb{background:rgba(255,255,255,.12);border-radius:999px}
     .nav-btn{
       display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border-radius:999px;
       background:transparent;border:1px solid rgba(255,255,255,0.03); color:var(--text);
-      font-weight:700;font-size:13px;cursor:pointer;
+      font-weight:700;font-size:13px;cursor:pointer;white-space:nowrap;
       transition:transform .28s, box-shadow .28s, background .28s;backdrop-filter: blur(6px);
     }
     .nav-btn svg{width:18px;height:18px;display:block}
     .nav-btn:hover{transform:translateY(-6px) scale(1.03);box-shadow:0 12px 30px rgba(255,140,40,0.10)}
     .nav-btn.active{background:linear-gradient(90deg, rgba(255,220,140,0.10), rgba(255,160,80,0.04));box-shadow:0 14px 36px rgba(255,140,40,0.12)}
+    .nav-btn:focus-visible{outline:none;box-shadow:var(--focus)}
 
     /* Viewport */
-    main.viewport{ position:fixed;left:0;right:0;top:86px;bottom:0;overflow:hidden;padding:28px 5%; z-index:20;display:flex;align-items:center;justify-content:center; }
+    main.viewport{
+      position:fixed;left:0;right:0;bottom:0;
+      top:calc(64px + env(safe-area-inset-top));
+      height:calc(100dvh - (64px + env(safe-area-inset-top)));
+      overflow:hidden;
+      padding: var(--space) clamp(16px,4vw,5%);
+      z-index:20;display:flex;align-items:center;justify-content:center;
+    }
 
     /* Panels container */
-    .panels{ width:1200px;max-width:calc(100% - 80px);height:calc(100% - 120px); position:relative; overflow:visible; display:flex;align-items:center;justify-content:center; }
+    .panels{ width:min(1200px, 100%); height:100%; position:relative; display:flex;align-items:stretch;justify-content:center; }
 
     /* Panel base */
     .panel{
-      position:absolute;inset:0;margin:auto; width:100%;height:100%;max-height:980px;
-      display:grid;grid-template-columns: 1fr 480px;gap:36px;align-items:center;
-      padding:48px;border-radius:20px;
+      position:absolute;inset:0;margin:auto; width:100%;height:100%;
+      display:grid;grid-template-columns: 1fr minmax(300px, 480px);gap:var(--panel-gap);align-items:start;
+      padding:clamp(16px, 3.5vw, 48px);border-radius:var(--panel-radius);
       background: linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.006));
       border: 1px solid rgba(255,255,255,0.03);
       box-shadow: var(--soft-shadow);
       transform: translateX(140%) scale(.98); opacity:0;
       transition: transform .8s cubic-bezier(.2,.9,.25,1), opacity .5s;
-      will-change: transform, opacity; overflow: hidden;
+      will-change: transform, opacity;
+      overflow-y:auto; overflow-x:hidden; -webkit-overflow-scrolling: touch;
     }
     .panel.active{transform: translateX(0) scale(1);opacity:1;z-index:30}
+    .panel:focus{outline:none}
+    .panel:focus-visible{box-shadow:var(--focus)}
 
     /* Panel inner content */
-    .content{ padding-right:6%; max-width:920px; }
-    .panel-title{font-size:40px;color:var(--accent-1);margin:0 0 10px 0;letter-spacing:.4px}
-    .lead{font-size:18px;color:var(--muted);line-height:1.6;margin-bottom:18px}
-    .card-blurb{ background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.008)); padding:18px;border-radius:14px;border:1px solid var(--card-border); }
-    .facts{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:18px}
+    .content{ padding-right:4%; max-width:920px; min-height:0 }
+    .panel-title{font-size:var(--title);color:var(--accent-1);margin:0 0 10px 0;letter-spacing:.4px}
+    .lead{font-size:var(--lead);color:var(--muted);line-height:1.6;margin-bottom:var(--space)}
+    .card-blurb{ background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.008)); padding:14px;border-radius:14px;border:1px solid var(--card-border); }
+    .facts{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:12px}
     .fact{background:rgba(255,255,255,0.02);padding:10px;border-radius:10px;font-weight:600;color:var(--muted);font-size:13px}
 
-    /* Right column - vector illustration + mini-card */
-    .media{ display:flex;flex-direction:column;align-items:center;gap:18px;justify-content:center;padding-left:6%; }
-    .illustration-wrap{ width:100%;max-width:460px;height:420px;border-radius:16px; display:flex;align-items:center;justify-content:center; background:linear-gradient(180deg, rgba(0,0,0,0.18), rgba(0,0,0,0.12)); border:1px solid rgba(255,255,255,0.03); box-shadow: 0 18px 50px rgba(0,0,0,0.6); overflow:hidden;position:relative; }
+    /* Right column */
+    .media{ display:flex;flex-direction:column;align-items:center;gap:14px;justify-content:flex-start;padding-left:4%; min-height:0 }
+    .illustration-wrap{ width:100%;max-width:460px;height:clamp(240px, 35vh, 420px);border-radius:16px; display:flex;align-items:center;justify-content:center; background:linear-gradient(180deg, rgba(0,0,0,0.18), rgba(0,0,0,0.12)); border:1px solid rgba(255,255,255,0.03); box-shadow: 0 18px 50px rgba(0,0,0,0.6); overflow:hidden;position:relative;flex:0 0 auto; }
     .illustration{ width:90%;height:90%; display:block; transform-origin:center; transition: transform .8s cubic-bezier(.2,.9,.25,1), filter .6s; filter: drop-shadow(0 12px 40px rgba(0,0,0,0.45)); }
     .illustration-wrap:hover .illustration{ transform: scale(1.03) rotate(-2deg) }
-    .meta-card{ width:100%;padding:12px;border-radius:12px;background:rgba(255,255,255,0.02); border:1px solid var(--card-border);display:flex;gap:12px;align-items:center; }
+    .meta-card{ width:100%;padding:12px;border-radius:12px;background:rgba(255,255,255,0.02); border:1px solid var(--card-border);display:flex;gap:12px;align-items:center;flex:0 0 auto; }
     .meta-card .dot{width:14px;height:14px;border-radius:50%;background:var(--accent-1)}
     .meta-card p{margin:0;font-size:13px;color:var(--muted)}
 
@@ -108,489 +146,438 @@
     .side-progress{ position:fixed;right:22px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:12px;z-index:40; }
     .dot-btn{width:14px;height:14px;border-radius:50%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.03);cursor:pointer}
     .dot-btn.active{background:linear-gradient(180deg,var(--accent-1),var(--accent-2));box-shadow:0 10px 26px rgba(255,140,40,0.18);transform:scale(1.25)}
+    .dot-btn:focus-visible{outline:none;box-shadow:var(--focus)}
 
     /* Responsive */
-    @media (max-width:1100px){ .panels{max-width:calc(100% - 60px)} .panel{grid-template-columns: 1fr 380px;padding:32px} .illustration-wrap{height:360px} }
-    @media (max-width:900px){ main.viewport{padding:18px} .panel{grid-template-columns:1fr;padding:22px;border-radius:14px} .illustration-wrap{max-width:100%;height:320px} }
-    @media (max-width:640px){ .panel{grid-template-columns:1fr;gap:18px;padding:18px;align-items:flex-start} .media{order:-1;padding-left:0} .illustration-wrap{height:260px} .panel-title{font-size:28px} }
+    @media (max-width:1100px){ .content{padding-right:0} .media{padding-left:0} }
+    @media (max-width:900px){ main.viewport{padding: var(--space)} .panel{grid-template-columns:1fr} .illustration-wrap{max-width:100%} .facts{grid-template-columns:1fr 1fr} }
+    @media (max-width:640px){ .panel{gap:var(--panel-gap);padding: clamp(12px, 3.5vw, 18px);align-items:flex-start} .media{order:-1} .illustration-wrap{height:clamp(220px, 34vh, 320px)} .panel-title{font-size:clamp(20px,6vw,28px)} .facts{grid-template-columns:1fr}
+      .side-progress{ right:unset;left:0;right:0;bottom:env(safe-area-inset-bottom);top:auto;transform:none; flex-direction:row;justify-content:center;gap:10px;padding:10px 0;z-index:45 }
+      .dot-btn{width:12px;height:12px}
+    }
 
-    /* staging reveals */
+    /* staged reveals */
     .stagger{opacity:0;transform:translateY(8px);transition: all .6s cubic-bezier(.2,.9,.25,1)}
     .stagger.show{opacity:1;transform:none}
+
+    /* Reduced motion */
+    @media (prefers-reduced-motion: reduce){ *{animation:none!important;transition:none!important} }
   </style>
 </head>
 <body>
-  <!-- Partículas (canvas) -->
-  <canvas id="particle-canvas" style="position:fixed;inset:0;z-index:5;pointer-events:none"></canvas>
 
-  <header class="app-header" role="banner">
-    <div class="brand" aria-hidden="false">
-      <div class="sat-emblem" aria-hidden="true">
-        <!-- decorative ring (pure CSS could be added) -->
-      </div>
-      <div>
-        <h1>SATURNO</h1>
-        <p>Explorador planetario — interactivo</p>
-      </div>
+<a class="skip-link" href="#panel-0">Skip to content</a>
+
+<!-- Subtle particles (canvas) -->
+<canvas id="particle-canvas" aria-hidden="true" style="position:fixed;inset:0;z-index:5;pointer-events:none"></canvas>
+
+<header class="app-header" role="banner">
+  <div class="brand" aria-hidden="false">
+    <div class="sat-emblem" aria-hidden="true"></div>
+    <div>
+      <h1>SATURN</h1>
+      <p>Vector Explorer — interactive</p>
     </div>
-
-    <nav class="top-nav" role="navigation" aria-label="Navegación principal">
-      <button class="nav-btn active" data-target="0" aria-pressed="true" title="Composición y estructura">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg> Estructura
-      </button>
-      <button class="nav-btn" data-target="1" title="Atmósfera">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20"/><path d="M4 8h16"/></svg> Atmósfera
-      </button>
-      <button class="nav-btn" data-target="2" title="Movimiento y órbita">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><path d="M4 12h4"/></svg> Movimiento
-      </button>
-      <button class="nav-btn" data-target="3" title="Influencia y curiosidades">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h3l3 8 4-16 2 6h4"/></svg> Curiosidades
-      </button>
-    </nav>
-  </header>
-
-  <main class="viewport" role="main">
-    <div class="panels">
-
-      <!-- PANEL 0: Composición y estructura -->
-      <section class="panel active" data-index="0" id="panel-0" aria-labelledby="title-0" role="region">
-        <div class="content">
-          <h2 id="title-0" class="panel-title stagger show">Composición y estructura</h2>
-          <p class="lead stagger show" style="transition-delay:.05s">
-            Saturno es un gigante gaseoso compuesto principalmente de hidrógeno y helio. No tiene una superficie sólida claramente definida; puede tener un núcleo denso, posiblemente rocoso o de hielo y roca.
-          </p>
-          <div class="card-blurb stagger show" style="transition-delay:.12s">
-            <strong>Núcleo (posible):</strong> denso y más rocoso/ametálico que las capas exteriores. <br>
-            <strong>Manto/atmósfera profunda:</strong> hidrógeno metálico en las capas internas bajo presión. <br>
-            <strong>Capas externas:</strong> nubes y bandas de gas que forman la apariencia caracterí­stica.
-          </div>
-          <div class="facts stagger show" style="transition-delay:.20s">
-            <div class="fact"><strong>Tipo:</strong> Gigante gaseoso</div>
-            <div class="fact"><strong>Composición:</strong> H2 y He principalmente</div>
-            <div class="fact"><strong>Tamaño:</strong> ~9.5 veces el radio terrestre</div>
-            <div class="fact"><strong>Anillos:</strong> sistema prominente alrededor del ecuador</div>
-          </div>
-        </div>
-
-        <aside class="media">
-          <div class="illustration-wrap" aria-hidden="false">
-            <!-- Inline SVG vectorial de Saturno con anillos -->
-            <svg class="illustration" viewBox="0 0 900 700" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Ilustración vectorial de Saturno con anillos">
-              <defs>
-                <radialGradient id="sat_core" cx="40%" cy="40%">
-                  <stop offset="0%" stop-color="#fff9f0"/>
-                  <stop offset="30%" stop-color="#ffe9c2"/>
-                  <stop offset="65%" stop-color="#ffd08a"/>
-                  <stop offset="100%" stop-color="#d9a86b"/>
-                </radialGradient>
-
-                <linearGradient id="ring1" x1="0" x2="1">
-                  <stop offset="0%" stop-color="#e9d7b8" stop-opacity="0.95"/>
-                  <stop offset="50%" stop-color="#caa87a" stop-opacity="0.6"/>
-                  <stop offset="100%" stop-color="#b58d60" stop-opacity="0.35"/>
-                </linearGradient>
-
-                <linearGradient id="ring2" x1="0" x2="1">
-                  <stop offset="0%" stop-color="#fff7e8" stop-opacity="0.6"/>
-                  <stop offset="100%" stop-color="#ffdbb3" stop-opacity="0.08"/>
-                </linearGradient>
-
-                <filter id="softGlow" x="-50%" y="-50%" width="200%" height="200%">
-                  <feGaussianBlur stdDeviation="10" result="blur"/>
-                  <feMerge>
-                    <feMergeNode in="blur"/>
-                    <feMergeNode in="SourceGraphic"/>
-                  </feMerge>
-                </filter>
-              </defs>
-
-              <!-- fondo transparente -->
-              <rect width="100%" height="100%" fill="transparent"/>
-
-              <g transform="translate(450,360)">
-                <!-- anillo exterior -->
-                <ellipse rx="340" ry="120" fill="url(#ring2)" stroke="rgba(255,235,200,0.06)" stroke-width="1.2" opacity="0.95" />
-                <!-- anillo medio con bandas -->
-                <g transform="rotate(-8)">
-                  <ellipse rx="300" ry="95" fill="none" stroke="url(#ring1)" stroke-width="22" opacity="0.98"/>
-                  <ellipse rx="260" ry="82" fill="none" stroke="#d9b37a" stroke-width="6" opacity="0.35"/>
-                </g>
-
-                <!-- sombra del anillo sobre el planeta -->
-                <ellipse rx="150" ry="48" fill="rgba(0,0,0,0.08)" transform="translate(32,18) rotate(-8)"/>
-
-                <!-- planeta (Saturno) -->
-                <g>
-                  <circle r="150" fill="url(#sat_core)" filter="url(#softGlow)"/>
-                  <!-- bandas suaves -->
-                  <g opacity="0.18" transform="scale(1)">
-                    <ellipse rx="150" ry="55" fill="#000" transform="translate(0,30)" />
-                    <ellipse rx="150" ry="42" fill="#fff" transform="translate(0,10)" opacity="0.06"/>
-                  </g>
-
-                  <!-- textura de bandas -->
-                  <g fill="none" stroke="rgba(0,0,0,0.06)" stroke-width="2" opacity="0.55">
-                    <path d="M-140,20 C-90,10 90,10 140,20" />
-                    <path d="M-140,40 C-90,32 90,32 140,40" />
-                    <path d="M-140,-10 C-90,-4 90,-4 140,-10" />
-                  </g>
-                </g>
-
-                <!-- pequeñas lunas estilizadas (decorativas) -->
-                <g transform="translate(220,-60)">
-                  <circle r="8" fill="#f6e4c7"/>
-                </g>
-                <g transform="translate(-260,40)">
-                  <circle r="6" fill="#e8d3b0"/>
-                </g>
-              </g>
-
-            </svg>
-          </div>
-
-          <div class="meta-card">
-            <div style="flex:1">
-              <div style="font-weight:800">Resumen rápido</div>
-              <p style="margin:6px 0 0 0;color:var(--muted);font-size:13px">Gigante gaseoso con un sistema de anillos espectacular — estructura dominada por gas y posibles capas internas densas.</p>
-            </div>
-            <div class="dot" aria-hidden="true"></div>
-          </div>
-        </aside>
-      </section>
-
-      <!-- PANEL 1: Atmósfera -->
-      <section class="panel" data-index="1" id="panel-1" aria-labelledby="title-1" role="region">
-        <div class="content">
-          <h2 id="title-1" class="panel-title stagger">Atmósfera</h2>
-          <p class="lead stagger" style="transition-delay:.05s">
-            La atmósfera de Saturno está formada por nubes de hidrógeno, helio y trazas de metano y amoníaco. Presenta bandas y tormentas, aunque menos marcadas que en Júpiter.
-          </p>
-          <div class="card-blurb stagger" style="transition-delay:.12s">
-            Nubes en diferentes alturas crean bandas y estructuras; hay vientos fuertes y sistemas tormentosos. Contiene trazas de metano, amoníaco y otras especies.
-          </div>
-          <div class="facts stagger" style="transition-delay:.20s">
-            <div class="fact"><strong>Bandas:</strong> presentes, menos contrastadas que Júpiter</div>
-            <div class="fact"><strong>Composición:</strong> H2, He, trazas de CH4, NH3</div>
-            <div class="fact"><strong>Vientos:</strong> muy fuertes en algunas latitudes</div>
-            <div class="fact"><strong>Fenómenos:</strong> tormentas y ondas atmosféricas</div>
-          </div>
-        </div>
-
-        <aside class="media">
-          <div class="illustration-wrap">
-            <!-- SVG: nubes y tormentas estilizadas -->
-            <svg class="illustration" viewBox="0 0 800 600" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Ilustración atmosférica de Saturno">
-              <defs>
-                <linearGradient id="atm-grad" x1="0" x2="1">
-                  <stop offset="0%" stop-color="#fff6e8"/>
-                  <stop offset="60%" stop-color="#ffe1b8"/>
-                  <stop offset="100%" stop-color="#ffd09a"/>
-                </linearGradient>
-                <filter id="blurSmall" x="-50%" y="-50%" width="200%" height="200%">
-                  <feGaussianBlur stdDeviation="6" />
-                </filter>
-              </defs>
-
-              <rect width="100%" height="100%" fill="transparent"/>
-
-              <!-- planet slice -->
-              <g transform="translate(400,300) scale(0.9)">
-                <ellipse rx="140" ry="90" fill="url(#atm-grad)" stroke="#e3caa0" stroke-width="2" />
-                <!-- band stripes -->
-                <g opacity="0.28" stroke="#caa57a" stroke-width="8" stroke-linecap="round">
-                  <path d="M-120,-10 C-40,-20 40,-20 120,-10" />
-                  <path d="M-120,10 C-40,0 40,0 120,10" />
-                  <path d="M-120,30 C-40,22 40,22 120,30" />
-                </g>
-
-                <!-- storm -->
-                <g transform="translate(40,-10)">
-                  <circle r="18" fill="#fff8ee" stroke="#e6c9a7" stroke-width="2"/>
-                  <circle r="10" fill="#ffd9a3" opacity="0.95"/>
-                </g>
-
-                <!-- small convective plumes -->
-                <g transform="translate(-70,20)" opacity="0.85">
-                  <ellipse rx="12" ry="5" fill="#fff6e8"/>
-                  <ellipse rx="8" ry="3" fill="#ffe7c9" transform="translate(4,-6)"/>
-                </g>
-              </g>
-
-            </svg>
-          </div>
-
-          <div class="meta-card">
-            <div style="flex:1">
-              <div style="font-weight:800">Dato</div>
-              <p style="margin:6px 0 0 0;color:var(--muted);font-size:13px">Las tormentas en Saturno pueden cubrir grandes áreas y durar semanas o más.</p>
-            </div>
-            <div class="dot" aria-hidden="true"></div>
-          </div>
-        </aside>
-      </section>
-
-      <!-- PANEL 2: Movimiento y órbita -->
-      <section class="panel" data-index="2" id="panel-2" aria-labelledby="title-2" role="region">
-        <div class="content">
-          <h2 id="title-2" class="panel-title stagger">Movimiento y órbita</h2>
-          <p class="lead stagger" style="transition-delay:.05s">
-            Saturno tarda aproximadamente 29 años terrestres en completar una órbita alrededor del Sol. Gira rápidamente sobre su eje: un día saturniano dura cerca de 10.7 horas.
-          </p>
-          <div class="card-blurb stagger" style="transition-delay:.12s">
-            Su rápida rotación provoca un marcado achatamiento en los polos y un abultamiento ecuatorial que condiciona la forma de los anillos y las dinámicas atmosféricas.
-          </div>
-          <div class="facts stagger" style="transition-delay:.20s">
-            <div class="fact"><strong>Año:</strong> ~29 años terrestres</div>
-            <div class="fact"><strong>Rotación:</strong> ~10.7 horas (día rápido)</div>
-            <div class="fact"><strong>Forma:</strong> achatado por rotación</div>
-            <div class="fact"><strong>Anillos:</strong> alineados con el ecuador</div>
-          </div>
-        </div>
-
-        <aside class="media">
-          <div class="illustration-wrap">
-            <!-- SVG: órbita estilizada y eje inclinado -->
-            <svg class="illustration" viewBox="0 0 800 600" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Ilustración de la órbita y rotación de Saturno">
-              <defs>
-                <linearGradient id="orbitGrad" x1="0" x2="1">
-                  <stop offset="0%" stop-color="#fff3d9" stop-opacity="0.7"/>
-                  <stop offset="100%" stop-color="#ffd0a8" stop-opacity="0.2"/>
-                </linearGradient>
-              </defs>
-
-              <rect width="100%" height="100%" fill="transparent"/>
-              <!-- Sun (decorative) -->
-              <g transform="translate(120,300)">
-                <circle r="26" fill="#ffd86b" opacity="0.95"/>
-              </g>
-
-              <!-- orbit path -->
-              <g transform="translate(200,300)">
-                <ellipse rx="360" ry="160" fill="none" stroke="url(#orbitGrad)" stroke-width="3" opacity="0.8" />
-                <!-- Saturn position marker -->
-                <g transform="translate(320,-20)">
-                  <ellipse rx="40" ry="30" fill="#ffd9a3" stroke="#d1a36b" stroke-width="2"/>
-                </g>
-                <!-- arrow showing direction -->
-                <path d="M320,-20 L335,-28 L333,-12 Z" fill="#ffd9a3" opacity="0.95"/>
-              </g>
-
-            </svg>
-          </div>
-
-          <div class="meta-card">
-            <div style="flex:1">
-              <div style="font-weight:800">Observación</div>
-              <p style="margin:6px 0 0 0;color:var(--muted);font-size:13px">El achatamiento ecuatorial de Saturno es claramente observable en imágenes telescópicas y por sondas.</p>
-            </div>
-            <div class="dot" aria-hidden="true"></div>
-          </div>
-        </aside>
-      </section>
-
-      <!-- PANEL 3: Influencia o curiosidades -->
-      <section class="panel" data-index="3" id="panel-3" aria-labelledby="title-3" role="region">
-        <div class="content">
-          <h2 id="title-3" class="panel-title stagger">Influencia y curiosidades</h2>
-          <p class="lead stagger" style="transition-delay:.05s">
-            Saturno es famoso por sus anillos: partículas de hielo y roca que forman estructuras complejas. Tiene más de 80 lunas, destacando Titán, con atmósfera y líquidos superficiales.
-          </p>
-          <div class="card-blurb stagger" style="transition-delay:.12s">
-            Los anillos varían en densidad y estructura; Titán y otras lunas hacen de Saturno un sistema de gran interés para la ciencia planetaria.
-          </div>
-          <div class="facts stagger" style="transition-delay:.20s">
-            <div class="fact"><strong>Anillos:</strong> partículas hielo-roca</div>
-            <div class="fact"><strong>Lunas:</strong> >80 (Titán notoria)</div>
-            <div class="fact"><strong>Campo magnético:</strong> fuerte, excéntrico</div>
-            <div class="fact"><strong>Interés:</strong> laboratorio para química orgánica (Titán)</div>
-          </div>
-        </div>
-
-        <aside class="media">
-          <div class="illustration-wrap">
-            <!-- SVG: anillos y Titán (estilizado) -->
-            <svg class="illustration" viewBox="0 0 800 600" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Ilustración de anillos y luna Titán">
-              <defs>
-                <radialGradient id="titan" cx="40%" cy="40%">
-                  <stop offset="0%" stop-color="#fffef5"/>
-                  <stop offset="60%" stop-color="#e9d6ba"/>
-                  <stop offset="100%" stop-color="#d6b899"/>
-                </radialGradient>
-                <linearGradient id="ringAccent" x1="0" x2="1">
-                  <stop offset="0%" stop-color="#fff8e6" stop-opacity="0.9"/>
-                  <stop offset="100%" stop-color="#ffdcb0" stop-opacity="0.2"/>
-                </linearGradient>
-              </defs>
-
-              <rect width="100%" height="100%" fill="transparent"/>
-
-              <g transform="translate(420,320)">
-                <!-- Saturn small representation -->
-                <circle r="90" fill="#ffd9a3" stroke="#d1a36b" stroke-width="2"/>
-
-                <!-- rings -->
-                <g transform="rotate(-6)">
-                  <ellipse rx="220" ry="70" fill="none" stroke="url(#ringAccent)" stroke-width="22" stroke-linecap="round" opacity="0.95"/>
-                  <ellipse rx="180" ry="57" fill="none" stroke="#d7b584" stroke-width="8" opacity="0.35"/>
-                </g>
-
-                <!-- Titán (stylized) -->
-                <g transform="translate(-260,40)">
-                  <circle r="18" fill="url(#titan)" stroke="#c9a77a" stroke-width="1.2"/>
-                  <text x="-28" y="44" font-size="12" fill="#d9b88f">Titán</text>
-                </g>
-
-                <!-- particles in rings -->
-                <g opacity="0.6" transform="rotate(-6)">
-                  <circle cx="-90" cy="-10" r="1.5" fill="#fff7e8"/>
-                  <circle cx="-40" cy="5" r="1.2" fill="#fff7e8"/>
-                  <circle cx="10" cy="-8" r="1.8" fill="#fff7e8"/>
-                  <circle cx="80" cy="10" r="1.0" fill="#fff7e8"/>
-                </g>
-              </g>
-
-            </svg>
-          </div>
-
-          <div class="meta-card">
-            <div style="flex:1">
-              <div style="font-weight:800">Importante</div>
-              <p style="margin:6px 0 0 0;color:var(--muted);font-size:13px">Las misiones espaciales han revelado detalles de los anillos y lunas — siguen siendo objetivos clave para la exploración.</p>
-            </div>
-            <div class="dot" aria-hidden="true"></div>
-          </div>
-        </aside>
-      </section>
-
-    </div>
-  </main>
-
-  <!-- side progress -->
-  <div class="side-progress" aria-hidden="false">
-    <div class="dot-btn active" data-target="0" title="Estructura"></div>
-    <div class="dot-btn" data-target="1" title="Atmósfera"></div>
-    <div class="dot-btn" data-target="2" title="Movimiento"></div>
-    <div class="dot-btn" data-target="3" title="Curiosidades"></div>
   </div>
 
-  <script>
-    /* --------------------------- Partículas sutiles - Canvas --------------------------- */
-    (function particles(){
-      const canvas = document.getElementById('particle-canvas');
-      const ctx = canvas.getContext('2d');
-      let w = canvas.width = innerWidth, h = canvas.height = innerHeight;
-      window.addEventListener('resize', ()=>{ w=canvas.width=innerWidth; h=canvas.height=innerHeight; });
+  <nav class="top-nav" role="navigation" aria-label="Main navigation">
+    <button class="nav-btn active" data-target="0" aria-pressed="true" aria-controls="panel-0" title="Composition & structure" aria-label="Structure">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+      <span class="label">Structure</span>
+    </button>
+    <button class="nav-btn" data-target="1" aria-controls="panel-1" title="Atmosphere" aria-label="Atmosphere">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2v20"/><path d="M4 8h16"/></svg>
+      <span class="label">Atmosphere</span>
+    </button>
+    <button class="nav-btn" data-target="2" aria-controls="panel-2" title="Motion & orbit" aria-label="Orbit">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M4 12h4"/></svg>
+      <span class="label">Orbit</span>
+    </button>
+    <button class="nav-btn" data-target="3" aria-controls="panel-3" title="Curiosities & influence" aria-label="Curiosities">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12h3l3 8 4-16 2 6h4"/></svg>
+      <span class="label">Curiosities</span>
+    </button>
+  </nav>
+</header>
 
-      const N = Math.round((w*h)/90000);
-      const parts = Array.from({length: Math.max(60, N)}, ()=>({
-        x: Math.random()*w, y: Math.random()*h,
-        r: Math.random()*1.8 + 0.3,
-        vx: (Math.random()-0.5)*0.12, vy: (Math.random()-0.5)*0.12,
-        alpha: Math.random()*0.5 + 0.12
-      }));
+<main class="viewport" role="main">
+  <div class="panels">
 
-      function step(){
-        ctx.clearRect(0,0,w,h);
-        for(const p of parts){
-          p.x += p.vx; p.y += p.vy;
-          if(p.x < -10) p.x = w + 10;
-          if(p.x > w + 10) p.x = -10;
-          if(p.y < -10) p.y = h + 10;
-          if(p.y > h + 10) p.y = -10;
-          ctx.beginPath();
-          ctx.fillStyle = 'rgba(255,255,255,'+ (p.alpha*0.9) +')';
-          ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
-          ctx.fill();
-        }
-        requestAnimationFrame(step);
-      }
-      step();
-    })();
+    <!-- PANEL 0: Composition & structure -->
+    <section class="panel active" data-index="0" id="panel-0" aria-labelledby="title-0" role="region" tabindex="-1">
+      <div class="content">
+        <h2 id="title-0" class="panel-title stagger show">Composition & structure</h2>
+        <p class="lead stagger show" style="transition-delay:.05s">
+          Saturn is a gas giant composed mostly of hydrogen and helium. It lacks a sharply defined solid surface; deep inside it likely hosts a dense core of rock and/or ice.
+        </p>
+        <div class="card-blurb stagger show" style="transition-delay:.12s">
+          <strong>Core (likely):</strong> dense, rock/ice-rich relative to outer layers. <br>
+          <strong>Deep interior:</strong> metallic hydrogen forms under immense pressure. <br>
+          <strong>Upper layers:</strong> cloud decks and bands that create its iconic look.
+        </div>
+        <div class="facts stagger show" style="transition-delay:.20s">
+          <div class="fact"><strong>Type:</strong> Gas giant</div>
+          <div class="fact"><strong>Composition:</strong> H₂ and He dominant</div>
+          <div class="fact"><strong>Size:</strong> ~9.5 Earth radii</div>
+          <div class="fact"><strong>Rings:</strong> prominent equatorial system</div>
+        </div>
+      </div>
 
-    /* --------------------------- Navigation logic (panels) --------------------------- */
-    const panels = Array.from(document.querySelectorAll('.panel'));
-    const navBtns = Array.from(document.querySelectorAll('.nav-btn'));
-    const dots = Array.from(document.querySelectorAll('.dot-btn'));
-    let current = 0;
-    const STAGGER_DELAY = 90;
+      <aside class="media">
+        <div class="illustration-wrap" aria-hidden="false">
+          <!-- Vector Saturn with rings -->
+          <svg class="illustration" viewBox="0 0 900 700" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Vector illustration of Saturn with rings">
+            <defs>
+              <radialGradient id="sat_core" cx="40%" cy="40%">
+                <stop offset="0%" stop-color="#fff9f0"/>
+                <stop offset="30%" stop-color="#ffe9c2"/>
+                <stop offset="65%" stop-color="#ffd08a"/>
+                <stop offset="100%" stop-color="#d9a86b"/>
+              </radialGradient>
+              <linearGradient id="ring1" x1="0" x2="1">
+                <stop offset="0%" stop-color="#e9d7b8" stop-opacity="0.95"/>
+                <stop offset="50%" stop-color="#caa87a" stop-opacity="0.6"/>
+                <stop offset="100%" stop-color="#b58d60" stop-opacity="0.35"/>
+              </linearGradient>
+              <linearGradient id="ring2" x1="0" x2="1">
+                <stop offset="0%" stop-color="#fff7e8" stop-opacity="0.6"/>
+                <stop offset="100%" stop-color="#ffdbb3" stop-opacity="0.08"/>
+              </linearGradient>
+              <filter id="softGlow" x="-50%" y="-50%" width="200%" height="200%">
+                <feGaussianBlur stdDeviation="10" result="blur"/>
+                <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+              </filter>
+            </defs>
+            <rect width="100%" height="100%" fill="transparent"/>
+            <g transform="translate(450,360)">
+              <ellipse rx="340" ry="120" fill="url(#ring2)" stroke="rgba(255,235,200,0.06)" stroke-width="1.2" opacity="0.95" />
+              <g transform="rotate(-8)">
+                <ellipse rx="300" ry="95" fill="none" stroke="url(#ring1)" stroke-width="22" opacity="0.98"/>
+                <ellipse rx="260" ry="82" fill="none" stroke="#d9b37a" stroke-width="6" opacity="0.35"/>
+              </g>
+              <ellipse rx="150" ry="48" fill="rgba(0,0,0,0.08)" transform="translate(32,18) rotate(-8)"/>
+              <g>
+                <circle r="150" fill="url(#sat_core)" filter="url(#softGlow)"/>
+                <g opacity="0.18" transform="scale(1)">
+                  <ellipse rx="150" ry="55" fill="#000" transform="translate(0,30)" />
+                  <ellipse rx="150" ry="42" fill="#fff" transform="translate(0,10)" opacity="0.06"/>
+                </g>
+                <g fill="none" stroke="rgba(0,0,0,0.06)" stroke-width="2" opacity="0.55">
+                  <path d="M-140,20 C-90,10 90,10 140,20" />
+                  <path d="M-140,40 C-90,32 90,32 140,40" />
+                  <path d="M-140,-10 C-90,-4 90,-4 140,-10" />
+                </g>
+              </g>
+              <g transform="translate(220,-60)"><circle r="8" fill="#f6e4c7"/></g>
+              <g transform="translate(-260,40)"><circle r="6" fill="#e8d3b0"/></g>
+            </g>
+          </svg>
+        </div>
+        <div class="meta-card" role="note" aria-label="Quick summary">
+          <div style="flex:1">
+            <div style="font-weight:800">Quick summary</div>
+            <p style="margin:6px 0 0 0;color:var(--muted);font-size:13px">Gas-dominated giant with a spectacular ring system; interior likely features dense layers.</p>
+          </div>
+          <div class="dot" aria-hidden="true"></div>
+        </div>
+      </aside>
+    </section>
 
-    function setActive(index, direction=1){
-      if(index === current) return;
-      index = Math.max(0, Math.min(panels.length-1, index));
-      const prev = current;
-      const next = index;
+    <!-- PANEL 1: Atmosphere -->
+    <section class="panel" data-index="1" id="panel-1" aria-labelledby="title-1" role="region" tabindex="-1">
+      <div class="content">
+        <h2 id="title-1" class="panel-title stagger">Atmosphere</h2>
+        <p class="lead stagger" style="transition-delay:.05s">
+          Saturn's atmosphere consists of hydrogen, helium, and traces of methane and ammonia. It shows belts, zones, and storms—less contrasted than Jupiter's but still dynamic.
+        </p>
+        <div class="card-blurb stagger" style="transition-delay:.12s">
+          Stacked cloud layers at different heights form bands and structures; strong winds and long-lived storms occur. Trace species include CH₄, NH₃ and others.
+        </div>
+        <div class="facts stagger" style="transition-delay:.20s">
+          <div class="fact"><strong>Bands:</strong> present, lower contrast than Jupiter</div>
+          <div class="fact"><strong>Composition:</strong> H₂, He, traces of CH₄, NH₃</div>
+          <div class="fact"><strong>Winds:</strong> very strong at some latitudes</div>
+          <div class="fact"><strong>Phenomena:</strong> storms and atmospheric waves</div>
+        </div>
+      </div>
 
-      // remove active from previous
-      panels[prev].classList.remove('active');
-      navBtns[prev].classList.remove('active');
-      navBtns[prev].setAttribute('aria-pressed','false');
-      dots[prev].classList.remove('active');
+      <aside class="media">
+        <div class="illustration-wrap">
+          <!-- Atmosphere stylized -->
+          <svg class="illustration" viewBox="0 0 800 600" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Stylized Saturn atmosphere">
+            <defs>
+              <linearGradient id="atm-grad" x1="0" x2="1">
+                <stop offset="0%" stop-color="#fff6e8"/>
+                <stop offset="60%" stop-color="#ffe1b8"/>
+                <stop offset="100%" stop-color="#ffd09a"/>
+              </linearGradient>
+            </defs>
+            <rect width="100%" height="100%" fill="transparent"/>
+            <g transform="translate(400,300) scale(0.9)">
+              <ellipse rx="140" ry="90" fill="url(#atm-grad)" stroke="#e3caa0" stroke-width="2" />
+              <g opacity="0.28" stroke="#caa57a" stroke-width="8" stroke-linecap="round">
+                <path d="M-120,-10 C-40,-20 40,-20 120,-10" />
+                <path d="M-120,10 C-40,0 40,0 120,10" />
+                <path d="M-120,30 C-40,22 40,22 120,30" />
+              </g>
+              <g transform="translate(40,-10)">
+                <circle r="18" fill="#fff8ee" stroke="#e6c9a7" stroke-width="2"/>
+                <circle r="10" fill="#ffd9a3" opacity="0.95"/>
+              </g>
+              <g transform="translate(-70,20)" opacity="0.85">
+                <ellipse rx="12" ry="5" fill="#fff6e8"/>
+                <ellipse rx="8" ry="3" fill="#ffe7c9" transform="translate(4,-6)"/>
+              </g>
+            </g>
+          </svg>
+        </div>
+        <div class="meta-card" role="note" aria-label="Atmospheric fact">
+          <div style="flex:1">
+            <div style="font-weight:800">Fact</div>
+            <p style="margin:6px 0 0 0;color:var(--muted);font-size:13px">Storms on Saturn can span huge areas and last weeks or longer.</p>
+          </div>
+          <div class="dot" aria-hidden="true"></div>
+        </div>
+      </aside>
+    </section>
 
-      // activate next
-      panels[next].classList.add('active');
-      navBtns[next].classList.add('active');
-      navBtns[next].setAttribute('aria-pressed','true');
-      dots[next].classList.add('active');
+    <!-- PANEL 2: Motion & orbit -->
+    <section class="panel" data-index="2" id="panel-2" aria-labelledby="title-2" role="region" tabindex="-1">
+      <div class="content">
+        <h2 id="title-2" class="panel-title stagger">Motion & orbit</h2>
+        <p class="lead stagger" style="transition-delay:.05s">
+          Saturn takes roughly 29 Earth years to orbit the Sun. It spins rapidly—one Saturn day is about <strong>10.7 hours</strong>—producing a noticeable equatorial bulge.
+        </p>
+        <div class="card-blurb stagger" style="transition-delay:.12s">
+          Fast rotation leads to polar flattening and an equatorial bulge that shapes ring appearance and atmospheric dynamics.
+        </div>
+        <div class="facts stagger" style="transition-delay:.20s">
+          <div class="fact"><strong>Year:</strong> ~29 Earth years</div>
+          <div class="fact"><strong>Rotation:</strong> ~10.7 hours</div>
+          <div class="fact"><strong>Shape:</strong> oblate due to rotation</div>
+          <div class="fact"><strong>Rings:</strong> aligned with the equator</div>
+        </div>
+      </div>
 
-      // reveal staggered children for polish
-      revealStagger(panels[next]);
+      <aside class="media">
+        <div class="illustration-wrap">
+          <!-- Orbit stylized -->
+          <svg class="illustration" viewBox="0 0 800 600" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Stylized orbit and rotation of Saturn">
+            <defs>
+              <linearGradient id="orbitGrad" x1="0" x2="1">
+                <stop offset="0%" stop-color="#fff3d9" stop-opacity="0.7"/>
+                <stop offset="100%" stop-color="#ffd0a8" stop-opacity="0.2"/>
+              </linearGradient>
+            </defs>
+            <rect width="100%" height="100%" fill="transparent"/>
+            <g transform="translate(120,300)">
+              <circle r="26" fill="#ffd86b" opacity="0.95"/>
+              <text x="-12" y="44" font-size="12" fill="#fff" opacity="0.7">Sun</text>
+            </g>
+            <g transform="translate(200,300)">
+              <ellipse rx="360" ry="160" fill="none" stroke="url(#orbitGrad)" stroke-width="3" opacity="0.8" />
+              <g transform="translate(320,-20)">
+                <ellipse rx="40" ry="30" fill="#ffd9a3" stroke="#d1a36b" stroke-width="2"/>
+                <text x="-16" y="58" font-size="12" fill="#fff">Saturn</text>
+              </g>
+              <path d="M320,-20 L335,-28 L333,-12 Z" fill="#ffd9a3" opacity="0.95"/>
+            </g>
+          </svg>
+        </div>
+        <div class="meta-card" role="note" aria-label="Observation">
+          <div style="flex:1">
+            <div style="font-weight:800">Observation</div>
+            <p style="margin:6px 0 0 0;color:var(--muted);font-size:13px">Saturn’s equatorial bulge is clearly visible in telescope images and spacecraft data.</p>
+          </div>
+          <div class="dot" aria-hidden="true"></div>
+        </div>
+      </aside>
+    </section>
 
-      // update current
-      current = next;
+    <!-- PANEL 3: Curiosities & influence -->
+    <section class="panel" data-index="3" id="panel-3" aria-labelledby="title-3" role="region" tabindex="-1">
+      <div class="content">
+        <h2 id="title-3" class="panel-title stagger">Curiosities & influence</h2>
+        <p class="lead stagger" style="transition-delay:.05s">
+          Saturn is famed for its rings—vast swarms of ice and rock particles forming intricate structures. It hosts 80+ moons; <strong>Titan</strong> stands out with a thick atmosphere and surface liquids.
+        </p>
+        <div class="card-blurb stagger" style="transition-delay:.12s">
+          Ring density and texture vary by region; Titan and other moons make Saturn a prime laboratory for planetary science and prebiotic chemistry.
+        </div>
+        <div class="facts stagger" style="transition-delay:.20s">
+          <div class="fact"><strong>Rings:</strong> ice–rock particles</div>
+          <div class="fact"><strong>Moons:</strong> 80+ (Titan prominent)</div>
+          <div class="fact"><strong>Magnetic field:</strong> strong, distinctive</div>
+          <div class="fact"><strong>Interest:</strong> organic chemistry (Titan)</div>
+        </div>
+      </div>
 
-      // update URL hash (optional)
-      history.replaceState(null, '', '#p' + next);
+      <aside class="media">
+        <div class="illustration-wrap">
+          <!-- Rings & Titan stylized -->
+          <svg class="illustration" viewBox="0 0 800 600" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Rings and Titan">
+            <defs>
+              <radialGradient id="titan" cx="40%" cy="40%">
+                <stop offset="0%" stop-color="#fffef5"/>
+                <stop offset="60%" stop-color="#e9d6ba"/>
+                <stop offset="100%" stop-color="#d6b899"/>
+              </radialGradient>
+              <linearGradient id="ringAccent" x1="0" x2="1">
+                <stop offset="0%" stop-color="#fff8e6" stop-opacity="0.9"/>
+                <stop offset="100%" stop-color="#ffdcb0" stop-opacity="0.2"/>
+              </linearGradient>
+            </defs>
+            <rect width="100%" height="100%" fill="transparent"/>
+            <g transform="translate(420,320)">
+              <circle r="90" fill="#ffd9a3" stroke="#d1a36b" stroke-width="2"/>
+              <g transform="rotate(-6)">
+                <ellipse rx="220" ry="70" fill="none" stroke="url(#ringAccent)" stroke-width="22" stroke-linecap="round" opacity="0.95"/>
+                <ellipse rx="180" ry="57" fill="none" stroke="#d7b584" stroke-width="8" opacity="0.35"/>
+              </g>
+              <g transform="translate(-260,40)">
+                <circle r="18" fill="url(#titan)" stroke="#c9a77a" stroke-width="1.2"/>
+                <text x="-18" y="44" font-size="12" fill="#d9b88f">Titan</text>
+              </g>
+              <g opacity="0.6" transform="rotate(-6)">
+                <circle cx="-90" cy="-10" r="1.5" fill="#fff7e8"/>
+                <circle cx="-40" cy="5" r="1.2" fill="#fff7e8"/>
+                <circle cx="10" cy="-8" r="1.8" fill="#fff7e8"/>
+                <circle cx="80" cy="10" r="1.0" fill="#fff7e8"/>
+              </g>
+            </g>
+          </svg>
+        </div>
+        <div class="meta-card" role="note" aria-label="Important">
+          <div style="flex:1">
+            <div style="font-weight:800">Important</div>
+            <p style="margin:6px 0 0 0;color:var(--muted);font-size:13px">Space missions have revealed detailed ring and moon physics—Saturn remains a prime exploration target.</p>
+          </div>
+          <div class="dot" aria-hidden="true"></div>
+        </div>
+      </aside>
+    </section>
+
+  </div>
+</main>
+
+<!-- side progress -->
+<div class="side-progress" aria-label="Section progress">
+  <button class="dot-btn active" data-target="0" aria-controls="panel-0" aria-current="true" title="Structure" aria-label="Go to Structure"></button>
+  <button class="dot-btn" data-target="1" aria-controls="panel-1" title="Atmosphere" aria-label="Go to Atmosphere"></button>
+  <button class="dot-btn" data-target="2" aria-controls="panel-2" title="Orbit" aria-label="Go to Orbit"></button>
+  <button class="dot-btn" data-target="3" aria-controls="panel-3" title="Curiosities" aria-label="Go to Curiosities"></button>
+</div>
+
+<script>
+/* ---------------------------
+   Subtle particles - Canvas (HiDPI aware)
+   --------------------------- */
+(function particles(){
+  const canvas = document.getElementById('particle-canvas');
+  const ctx = canvas.getContext('2d');
+  let w, h, dpr;
+  function resize(){
+    dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+    w = canvas.width = Math.round(innerWidth * dpr);
+    h = canvas.height = Math.round(innerHeight * dpr);
+    canvas.style.width = innerWidth + 'px';
+    canvas.style.height = innerHeight + 'px';
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0); // draw in CSS px
+  }
+  resize();
+  addEventListener('resize', resize);
+  const prefersReduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const N = Math.round((innerWidth*innerHeight)/90000);
+  const parts = Array.from({length: Math.max(60, N)}, () => ({
+    x: Math.random()*innerWidth,
+    y: Math.random()*innerHeight,
+    r: Math.random()*1.8 + 0.3,
+    vx: (Math.random()-0.5)*0.12,
+    vy: (Math.random()-0.5)*0.12,
+    alpha: Math.random()*0.5 + 0.12
+  }));
+  function step(){
+    ctx.clearRect(0,0,innerWidth,innerHeight);
+    for(const p of parts){
+      p.x += p.vx; p.y += p.vy;
+      if(p.x < -10) p.x = innerWidth + 10;
+      if(p.x > innerWidth + 10) p.x = -10;
+      if(p.y < -10) p.y = innerHeight + 10;
+      if(p.y > innerHeight + 10) p.y = -10;
+      ctx.beginPath();
+      ctx.fillStyle = 'rgba(255,236,200,'+ (p.alpha*0.9) +')';
+      ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+      ctx.fill();
     }
+    if(!prefersReduced) requestAnimationFrame(step);
+  }
+  step();
+})();
 
-    function revealStagger(panelEl){
-      const items = panelEl.querySelectorAll('.stagger');
-      items.forEach((it, i) => {
-        it.classList.remove('show');
-        setTimeout(()=> it.classList.add('show'), i * STAGGER_DELAY + 90);
-      });
+/* ---------------------------
+   Navigation logic (panels)
+   --------------------------- */
+const panels = Array.from(document.querySelectorAll('.panel'));
+const navBtns = Array.from(document.querySelectorAll('.nav-btn'));
+const dots = Array.from(document.querySelectorAll('.dot-btn'));
+let current = 0;
+const STAGGER_DELAY = 90;
+function clamp(n,a,b){ return Math.max(a, Math.min(b, n)); }
+function setActive(index){
+  index = clamp(index, 0, panels.length-1);
+  if(index === current) return;
+  panels[current].classList.remove('active');
+  navBtns[current].classList.remove('active');
+  navBtns[current].setAttribute('aria-pressed','false');
+  dots[current].classList.remove('active');
+  dots[current].removeAttribute('aria-current');
+  panels[index].classList.add('active');
+  navBtns[index].classList.add('active');
+  navBtns[index].setAttribute('aria-pressed','true');
+  dots[index].classList.add('active');
+  dots[index].setAttribute('aria-current','true');
+  revealStagger(panels[index]);
+  current = index;
+  history.replaceState(null, '', '#p' + index);
+  panels[index].focus({preventScroll:true});
+}
+function revealStagger(panelEl){
+  const items = panelEl.querySelectorAll('.stagger');
+  items.forEach((it, i) => {
+    it.classList.remove('show');
+    setTimeout(()=> it.classList.add('show'), i * STAGGER_DELAY + 90);
+  });
+}
+navBtns.forEach(b => b.addEventListener('click', ()=> setActive(Number(b.dataset.target))));
+dots.forEach(d => d.addEventListener('click', ()=> setActive(Number(d.dataset.target))));
+addEventListener('keydown', e => {
+  if(e.key === 'ArrowRight' || e.key === 'ArrowDown'){ setActive(current+1); }
+  if(e.key === 'ArrowLeft'  || e.key === 'ArrowUp'){   setActive(current-1); }
+  if(['1','2','3','4'].includes(e.key)) setActive(Number(e.key)-1);
+  if(e.key === 'Home') setActive(0);
+  if(e.key === 'End') setActive(panels.length-1);
+});
+(function swipe(){
+  let sx=0, sy=0;
+  addEventListener('touchstart', e => { sx = e.touches[0].clientX; sy = e.touches[0].clientY; }, {passive:true});
+  addEventListener('touchend', e => {
+    const ex = e.changedTouches[0].clientX, ey = e.changedTouches[0].clientY;
+    const dx = ex - sx, dy = ey - sy;
+    if(Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy)){
+      if(dx < 0) setActive(current+1);
+      if(dx > 0) setActive(current-1);
     }
-
-    // init nav click
-    navBtns.forEach(b => b.addEventListener('click', ()=> {
-      const target = Number(b.dataset.target);
-      setActive(target, target > current ? 1 : -1);
-    }));
-    dots.forEach(d => d.addEventListener('click', ()=> {
-      const target = Number(d.dataset.target);
-      setActive(target, target > current ? 1 : -1);
-    }));
-
-    // keyboard navigation
-    window.addEventListener('keydown', e => {
-      if(e.key === 'ArrowRight'){ if(current < panels.length-1) setActive(current+1,1); }
-      if(e.key === 'ArrowLeft'){ if(current > 0) setActive(current-1,-1); }
-    });
-
-    // swipe support
-    (function swipe(){
-      let sx=0, sy=0;
-      window.addEventListener('touchstart', e => { sx = e.touches[0].clientX; sy = e.touches[0].clientY; }, {passive:true});
-      window.addEventListener('touchend', e => {
-        const ex = e.changedTouches[0].clientX;
-        const dx = ex - sx;
-        if(Math.abs(dx) > 50){
-          if(dx < 0 && current < panels.length-1) setActive(current+1,1);
-          if(dx > 0 && current > 0) setActive(current-1,-1);
-        }
-      }, {passive:true});
-    })();
-
-    // Reveal first panel on load (stagger children)
-    document.addEventListener('DOMContentLoaded', ()=> {
-      revealStagger(panels[0]);
-      // if URL has hash like #p2 open it
-      const hash = window.location.hash;
-      if(hash && hash.startsWith('#p')){
-        const idx = parseInt(hash.slice(2));
-        if(!isNaN(idx) && idx >= 0 && idx < panels.length) setActive(idx);
-      }
-    });
-  </script>
+  }, {passive:true});
+})();
+// init
+document.addEventListener('DOMContentLoaded', ()=> {
+  revealStagger(panels[0]);
+  const hash = window.location.hash;
+  if(hash && hash.startsWith('#p')){
+    const idx = parseInt(hash.slice(2));
+    if(!isNaN(idx) && idx >= 0 && idx < panels.length) setActive(idx);
+  }
+});
+</script>
 </body>
 </html>
