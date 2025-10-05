@@ -166,7 +166,11 @@
     <script src="{{ url_for('static', filename='js/scroll_planets.js') }}"></script>
 
     <script>
-      
+      setTimeout(() => {
+        const loading = document.getElementById('loading');
+        loading.style.display = 'none';
+      }, 3000);
+
     </script>
   </body>
 </html>
