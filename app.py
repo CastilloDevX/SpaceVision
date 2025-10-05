@@ -47,7 +47,7 @@ def museum():
     return render_template('museum.html')
     
 
-@app.route('/comparador')
+@app.route('/comparator')
 def comparador():
     return render_template('Comparador.html')
 
