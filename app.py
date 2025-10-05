@@ -16,7 +16,7 @@ def view_mercury():
 
 @app.route('/view/Venus')
 def view_venus():
-    return render_template('info-venus.html')
+    return render_template('info-earth.html')
 
 if __name__ == '__main__':
     app.run(debug=True)
