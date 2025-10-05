@@ -6,9 +6,17 @@ app = Flask(__name__)
 def home():
     return render_template('index.html')
 
-@app.route('/view/')
-def view_planet():
-    return render_template('info.html')
+@app.route('/view/sun')
+def view_sun():
+    return render_template('info-sun.html')
+
+@app.route('/view/mercury')
+def view_mercury():
+    return render_template('info-mercury.html')
+
+@app.route('/view/venus')
+def view_venus():
+    return render_template('info-venus.html')
 
 if __name__ == '__main__':
     app.run(debug=True)
