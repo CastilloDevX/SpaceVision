@@ -465,6 +465,40 @@
     <button type="button" class="dot-btn" data-target="2" aria-controls="panel-2" title="Motion" aria-label="Go to Motion"></button>
     <button type="button" class="dot-btn" data-target="3" aria-controls="panel-3" title="Curiosities" aria-label="Go to Curiosities"></button>
   </div>
+  <!-- Botón flotante con ícono de casa -->
+<a href="/"
+   title="Ir a inicio"
+   aria-label="Inicio"
+   style="
+     position: fixed;
+     bottom: 25px;
+     right: 25px;
+     width: 60px;
+     height: 60px;
+     background: #111;
+     color: #ffffff;
+     display: flex;
+     align-items: center;
+     justify-content: center;
+     border-radius: 50%;
+     box-shadow: 0 6px 18px rgba(3, 37, 65, 0.28);
+     cursor: pointer;
+     text-decoration: none;
+     transition: all 0.2s ease;
+     z-index: 9999;
+   "
+   onmouseover="this.style.transform='scale(1.08)'; this.style.boxShadow='0 10px 25px rgba(3,37,65,0.35)';"
+   onmouseout ="this.style.transform='scale(1)'; this.style.boxShadow='0 6px 18px rgba(3,37,65,0.28)';"
+   onfocus  ="this.style.outline='3px solid rgba(2,132,199,0.25)'; this.style.transform='scale(1.08)';"
+   onblur   ="this.style.outline='none'; this.style.transform='scale(1)';"
+>
+  <svg xmlns="http://www.w3.org/2000/svg"
+       width="30" height="30" viewBox="0 0 24 24" fill="none"
+       stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+       style="display:block;">
+    <path d="M3 9.5L12 3l9 6.5V21a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1V9.5z"/>
+  </svg>
+</a>
 
   <script>
     /* --------------------------- Particles - Canvas (HiDPI aware) --------------------------- */
