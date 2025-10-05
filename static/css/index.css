@@ -1,6 +1,7 @@
 body {
     background-color: black;
     color: white;
+    font-family: Poppins;
 }
 
 html, body {
@@ -25,4 +26,59 @@ html, body {
     color: white;
     text-shadow: 0 0 10px #0af;
     transition: opacity 0.5s;
+}
+
+#loading {
+    position: fixed;
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: black;
+    z-index: 9999999;
+
+    opacity: 0;
+
+    animation: appear 3s;
+}
+
+#content {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    align-items: center;
+
+    animation: splash 2s;
+}
+
+#content p {
+    font-size: 5rem;
+    font-weight: bold;
+    line-height: 4.5rem;
+}
+
+@keyframes splash {
+    0% {
+        opacity: 0;
+        scale: 0;
+    }
+
+    100% {
+        opacity: 1;
+        scale: 1;
+    }
+}
+
+@keyframes appear {
+    0% {
+        opacity: 1;
+    }
+    90% {
+        opacity: 1;
+    }
+
+    100% {
+        opacity: 0;
+    }
 }
