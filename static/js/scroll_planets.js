@@ -1,5 +1,7 @@
 const canvas = document.getElementById("renderCanvas");
 const label  = document.getElementById("name");
+const btnUp  = document.getElementById("btnUp");
+const btnDown= document.getElementById("btnDown");
 
 // Engine con alpha para respetar tu fondo negro del CSS
 const engine = new BABYLON.Engine(canvas, true, { antialias: true, alpha: true });
@@ -77,18 +79,26 @@ async function createHolderFor(index) {
   res.meshes.forEach(m => {
     if ((m instanceof BABYLON.Mesh || m instanceof BABYLON.TransformNode) && m !== h) {
       m.parent = h;
-      // asegúrate de que sea cliqueable
-      if (m instanceof BABYLON.Mesh) m.isPickable = true;
+      if (m instanceof BABYLON.Mesh) m.isPickable = true; // clickable
     }
   });
 
-  // El contenedor no debe interferir con el pick
-  h.isPickable = false;
-
-  // Normaliza tamaño y centra
+  h.isPickable = false; // el contenedor no estorba al pick
   centerAndNormalize(h);
-
   return h;
+}
+
+// --- UI: habilita/deshabilita botones según índice/animación
+function updateNavButtons() {
+  const MAX = PLANETS.length - 1;
+  const disableUp   = (idx <= 0) || animating;
+  const disableDown = (idx >= MAX) || animating;
+
+  btnUp.disabled = disableUp;
+  btnDown.disabled = disableDown;
+
+  btnUp.setAttribute('aria-disabled', String(disableUp));
+  btnDown.setAttribute('aria-disabled', String(disableDown));
 }
 
 // Init
@@ -100,6 +110,8 @@ async function init() {
   } catch (e) {
     console.error(e);
     label.textContent = "No se pudo cargar el modelo. Revisa rutas en /static/models/";
+  } finally {
+    updateNavButtons();
   }
 }
 init();
@@ -107,7 +119,11 @@ init();
 // Transición deslizante: actual baja, nuevo entra desde arriba (o al revés)
 async function slideTo(nextIndex, direction = 1) {
   if (animating) return;
+  const MAX = PLANETS.length - 1;
+  if (nextIndex < 0 || nextIndex > MAX) return;
+
   animating = true;
+  updateNavButtons();
 
   try {
     nextHolder = await createHolderFor(nextIndex);
@@ -115,7 +131,6 @@ async function slideTo(nextIndex, direction = 1) {
 
     // posiciona el nuevo fuera de pantalla
     nextHolder.position.set(0, direction === 1 ? +DY : -DY, 0);
-
     label.style.opacity = "0";
 
     const t0 = performance.now();
@@ -125,14 +140,12 @@ async function slideTo(nextIndex, direction = 1) {
         const e = easeInOut(k);
 
         if (holder) {
-          // sale en sentido opuesto
           const yOutStart = 0;
           const yOutEnd   = (direction === 1) ? -DY : +DY;
           holder.position.y = yOutStart + (yOutEnd - yOutStart) * e;
         }
 
         if (nextHolder) {
-          // entra hacia el centro
           const yInStart = (direction === 1) ? +DY : -DY;
           const yInEnd   = 0;
           nextHolder.position.y = yInStart + (yInEnd - yInStart) * e;
@@ -156,6 +169,7 @@ async function slideTo(nextIndex, direction = 1) {
     console.error(e);
   } finally {
     animating = false;
+    updateNavButtons();
   }
 }
 
@@ -164,27 +178,22 @@ async function slideTo(nextIndex, direction = 1) {
 let acc = 0, last = 0;
 const THRESHOLD = 200;
 const MAX_INDEX = PLANETS.length - 1;
-// Para evitar “picos” de trackpad (delta enormes que saltan el umbral)
-const DELTA_CAP = 140; // ajusta si tu touchpad es muy “nervioso”
+const DELTA_CAP = 140; // limita picos de trackpad
 
 window.addEventListener("wheel", async (e) => {
   e.preventDefault?.(); // evita que scrollee el body
 
-  // Si estamos en el límite y la dirección va “hacia afuera”, NO contamos el scroll
   if ((idx === 0 && e.deltaY < 0) || (idx === MAX_INDEX && e.deltaY > 0)) {
-    return; // ← delimitador: no acumula, no dispara transición
+    return;
   }
 
-  // Suaviza picos de deltaY
   const dy = Math.max(-DELTA_CAP, Math.min(DELTA_CAP, e.deltaY));
   acc += dy;
 
-  // siguiente
   if (acc - last > THRESHOLD && idx < MAX_INDEX) {
     last = acc;
     await slideTo(idx + 1, 1);
   }
-  // anterior
   if (last - acc > THRESHOLD && idx > 0) {
     last = acc;
     await slideTo(idx - 1, -1);
@@ -192,30 +201,25 @@ window.addEventListener("wheel", async (e) => {
 }, { passive: false });
 
 // --------- CLICK EN EL MODELO → /view/[Planeta] ---------
-
-// Helper: ¿la malla golpeada pertenece al holder actual?
 function isHitOnCurrentHolder(mesh) {
   if (!mesh || !holder) return false;
   return mesh === holder || mesh.isDescendantOf(holder);
 }
 
-// Navegación
 function goToPlanetView() {
   const name = PLANETS[idx].name;
   const url = `/view/${encodeURIComponent(name)}`;
   window.location.href = url;
 }
 
-// Detectar click (no drag)
 let pointerDownPos = null;
 let pointerDownTime = 0;
-const CLICK_MOVE_TOL = 6;   // px máximos de movimiento para considerar click
-const CLICK_TIME_TOL = 300; // ms máximos entre down y up
+const CLICK_MOVE_TOL = 6;
+const CLICK_TIME_TOL = 300;
 
 scene.onPointerObservable.add((pointerInfo) => {
   switch (pointerInfo.type) {
     case BABYLON.PointerEventTypes.POINTERMOVE: {
-      // Hover cursor: pointer cuando estás sobre el planeta actual
       const pick = scene.pick(scene.pointerX, scene.pointerY);
       if (!animating && pick?.hit && isHitOnCurrentHolder(pick.pickedMesh)) {
         canvas.style.cursor = "pointer";
@@ -224,16 +228,13 @@ scene.onPointerObservable.add((pointerInfo) => {
       }
       break;
     }
-
     case BABYLON.PointerEventTypes.POINTERDOWN: {
       pointerDownPos = { x: scene.pointerX, y: scene.pointerY };
       pointerDownTime = performance.now();
       break;
     }
-
     case BABYLON.PointerEventTypes.POINTERUP: {
-      if (animating) break; // no clicks durante la animación
-
+      if (animating) break;
       const dt = performance.now() - pointerDownTime;
       const dx = Math.abs(scene.pointerX - (pointerDownPos?.x ?? scene.pointerX));
       const dy = Math.abs(scene.pointerY - (pointerDownPos?.y ?? scene.pointerY));
@@ -247,6 +248,16 @@ scene.onPointerObservable.add((pointerInfo) => {
       break;
     }
   }
+});
+
+// --------- Botones: arriba/abajo ---------
+btnUp.addEventListener("click", async () => {
+  if (animating) return;
+  await slideTo(idx - 1, -1);
+});
+btnDown.addEventListener("click", async () => {
+  if (animating) return;
+  await slideTo(idx + 1, 1);
 });
 
 // Render

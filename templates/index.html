@@ -18,11 +18,35 @@
       color:#fff; font:600 18px system-ui, sans-serif; text-shadow:0 0 8px #09f;
       pointer-events:none;
     }
+    /* Botones de navegación */
+    .nav-controls {
+      position: absolute; right: 16px; top: 50%; transform: translateY(-50%);
+      display: flex; flex-direction: column; gap: 10px; z-index: 10;
+    }
+    .nav-btn {
+      width: 44px; height: 44px; border-radius: 999px; border: 1px solid #2a2a2a;
+      background: rgba(20,20,20,.7); color:#fff; font: 700 18px/1 system-ui, sans-serif;
+      display: grid; place-items: center; cursor: pointer; user-select: none;
+      box-shadow: 0 4px 18px rgba(0,0,0,.35);
+      transition: transform .12s ease, background .12s ease, opacity .2s ease;
+      backdrop-filter: blur(2px);
+    }
+    .nav-btn:hover { transform: scale(1.06); background: rgba(35,35,35,.85); }
+    .nav-btn:active { transform: scale(0.98); }
+    .nav-btn[disabled] {
+      opacity: .35; cursor: not-allowed; transform: none;
+    }
   </style>
 </head>
 <body>
   <div id="name">Cargando…</div>
   <canvas id="renderCanvas"></canvas>
+
+  <!-- Controles -->
+  <div class="nav-controls" aria-label="Navegación de planetas">
+    <button id="btnUp" class="nav-btn" title="Anterior (arriba)" aria-label="Planeta anterior">▲</button>
+    <button id="btnDown" class="nav-btn" title="Siguiente (abajo)" aria-label="Siguiente planeta">▼</button>
+  </div>
 
   <script src="{{ url_for('static', filename='js/scroll_planets.js') }}"></script>
 </body>
