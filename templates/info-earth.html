@@ -3,21 +3,21 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1.0" />
-<title>Mercurio — Explorador Vectorial</title>
+<title>Tierra — Explorador Vectorial</title>
 
 <!-- Fuente -->
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;800&display=swap" rel="stylesheet">
 
 <style>
   :root{
-    --bg1: #040416;
-    --bg2: #0b1230;
-    --accent-1: #cfcfcf;
-    --accent-2: #9aa0a6;
-    --glass: rgba(255,255,255,0.04);
-    --card-border: rgba(200,200,200,0.06);
-    --text: #f7f6f2;
-    --muted: rgba(247,246,242,0.75);
+    --bg1: #031521;
+    --bg2: #052733;
+    --accent-1: #7fd3c7;
+    --accent-2: #3aa79a;
+    --glass: rgba(255,255,255,0.03);
+    --card-border: rgba(127,211,199,0.06);
+    --text: #eef7f5;
+    --muted: rgba(238,247,245,0.78);
     --soft-shadow: 0 12px 40px rgba(0,0,0,0.6);
     --radius: 18px;
   }
@@ -30,8 +30,8 @@
     font-family:"Poppins",system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial;
     color:var(--text);
     background:
-      radial-gradient(1000px 500px at 10% 10%, rgba(255,255,255,0.02), transparent 8%),
-      radial-gradient(800px 400px at 90% 90%, rgba(180,180,180,0.01), transparent 6%),
+      radial-gradient(900px 400px at 12% 12%, rgba(127,211,199,0.02), transparent 8%),
+      radial-gradient(700px 300px at 88% 88%, rgba(58,167,154,0.01), transparent 6%),
       linear-gradient(180deg,var(--bg1),var(--bg2) 60%, #000 100%);
     -webkit-font-smoothing:antialiased;
     -moz-osx-font-smoothing:grayscale;
@@ -49,16 +49,16 @@
   }
 
   .brand{display:flex;align-items:center;gap:16px}
-  .mercury-emblem{
+  .earth-emblem{
     width:64px;height:64px;border-radius:50%;
-    background: radial-gradient(circle at 35% 30%, #f6f6f6 0%, #cfcfcf 18%, #9f9f9f 46%, #6f6f6f 86%);
-    box-shadow: 0 12px 40px rgba(120,120,120,0.12), inset 0 -6px 18px rgba(0,0,0,0.06);
+    background: radial-gradient(circle at 35% 30%, #d9f7f1 0%, #7fd3c7 20%, #3aa79a 55%, #155953 90%);
+    box-shadow: 0 12px 40px rgba(60,160,140,0.12), inset 0 -6px 18px rgba(0,0,0,0.06);
     display:flex;align-items:center;justify-content:center;
     transform-origin:center;
-    animation: slowTilt 12s ease-in-out infinite;
+    animation: gentleSpin 18s linear infinite;
     border:1px solid rgba(255,255,255,0.04);
   }
-  @keyframes slowTilt{0%{transform:rotate(0deg)}50%{transform:rotate(-6deg)}100%{transform:rotate(0deg)}}
+  @keyframes gentleSpin{to{transform:rotate(360deg)}}
 
   .brand h1{font-size:18px;margin:0;font-weight:800;letter-spacing:.6px}
   .brand p{margin:2px 0 0;font-size:12px;color:var(--muted)}
@@ -73,8 +73,8 @@
     backdrop-filter: blur(6px);
   }
   .nav-btn svg{width:18px;height:18px;display:block}
-  .nav-btn:hover{transform:translateY(-6px) scale(1.03);box-shadow:0 12px 30px rgba(120,120,120,0.12)}
-  .nav-btn.active{background:linear-gradient(90deg, rgba(207,207,207,0.10), rgba(154,160,166,0.04));box-shadow:0 14px 36px rgba(120,120,120,0.14)}
+  .nav-btn:hover{transform:translateY(-6px) scale(1.03);box-shadow:0 12px 30px rgba(60,160,140,0.12)}
+  .nav-btn.active{background:linear-gradient(90deg, rgba(127,211,199,0.12), rgba(58,167,154,0.06));box-shadow:0 14px 36px rgba(58,167,154,0.12)}
 
   /* Viewport */
   main.viewport{
@@ -129,9 +129,9 @@
   .illustration-wrap, .sun-illustration-container{
     width:100%;max-width:460px;height:420px;border-radius:16px;
     display:flex;align-items:center;justify-content:center;
-    background:linear-gradient(180deg, rgba(0,0,0,0.18), rgba(0,0,0,0.12));
+    background:linear-gradient(180deg, rgba(0,0,0,0.15), rgba(0,0,0,0.10));
     border:1px solid rgba(255,255,255,0.03);
-    box-shadow: 0 18px 50px rgba(0,0,0,0.6);
+    box-shadow: 0 18px 50px rgba(0,0,0,0.5);
     overflow:hidden;position:relative;
   }
 
@@ -157,7 +157,7 @@
     position:fixed;right:22px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:12px;z-index:40;
   }
   .dot-btn{width:14px;height:14px;border-radius:50%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.03);cursor:pointer}
-  .dot-btn.active{background:linear-gradient(180deg,var(--accent-1),var(--accent-2));box-shadow:0 10px 26px rgba(120,120,120,0.18);transform:scale(1.25)}
+  .dot-btn.active{background:linear-gradient(180deg,var(--accent-1),var(--accent-2));box-shadow:0 10px 26px rgba(58,167,154,0.14);transform:scale(1.25)}
 
   /* Responsive */
   @media (max-width:1100px){
@@ -189,23 +189,17 @@
 
 <header class="app-header" role="banner">
   <div class="brand" aria-hidden="false">
-    <div class="mercury-emblem" aria-hidden="true">
-      <!-- subtle crater overlay (pure CSS pseudo feel) -->
+    <div class="earth-emblem" aria-hidden="true">
+      <!-- tiny globe detail -->
       <svg width="42" height="42" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-        <defs>
-          <radialGradient id="mgrad" cx="30%" cy="25%"><stop offset="0%" stop-color="#ffffff"/><stop offset="60%" stop-color="#d0d0d0"/><stop offset="100%" stop-color="#8f8f8f"/></radialGradient>
-        </defs>
-        <circle cx="32" cy="32" r="30" fill="url(#mgrad)" />
-        <g fill="#9a9a9a" opacity="0.65">
-          <circle cx="22" cy="20" r="3"/>
-          <circle cx="38" cy="28" r="2.2"/>
-          <circle cx="28" cy="40" r="2.6"/>
-        </g>
+        <circle cx="32" cy="32" r="30" fill="#7fd3c7"/>
+        <path d="M12 28c6-8 18-10 28-6" stroke="#1f6b5f" stroke-width="2" fill="none" stroke-linecap="round"/>
+        <path d="M20 42c6 4 18 6 30 0" stroke="#1f6b5f" stroke-width="2" fill="none" stroke-linecap="round"/>
       </svg>
     </div>
     <div>
-      <h1>MERCURIO</h1>
-      <p>Explorador vectorial — minimalista</p>
+      <h1>LA TIERRA</h1>
+      <p>Explorador vectorial — técnico</p>
     </div>
   </div>
 
@@ -215,7 +209,7 @@
       Estructura
     </button>
 
-    <button class="nav-btn" data-target="1" title="Atmósfera y temperaturas">
+    <button class="nav-btn" data-target="1" title="Atmósfera">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h18"/><path d="M12 2v4"/></svg>
       Atmósfera
     </button>
@@ -225,7 +219,7 @@
       Órbita
     </button>
 
-    <button class="nav-btn" data-target="3" title="Curiosidades e influencia">
+    <button class="nav-btn" data-target="3" title="Influencia y curiosidades">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l2 5 5 .5-4 3 1.5 5L12 14l-4.5 2.5L9 10 5 7.5 10 7z"/></svg>
       Curiosidades
     </button>
@@ -239,64 +233,73 @@
     <section class="panel active" data-index="0" id="panel-0" aria-labelledby="title-0" role="region">
       <div class="content">
         <h2 id="title-0" class="panel-title stagger show">Composición y estructura</h2>
-        <p class="lead stagger show" style="transition-delay:.05s">Mercurio es un planeta rocoso con un núcleo metálico que representa cerca del <strong>85% de su radio</strong>. Su corteza es delgada y está cubierta de cráteres, similares a los de la Luna.</p>
+        <p class="lead stagger show" style="transition-delay:.05s">La Tierra es un planeta rocoso compuesto por <strong>núcleo metálico</strong>, <strong>manto</strong> y <strong>corteza</strong>. Su tectónica de placas crea volcanes, montañas y la dinámica que modela la superficie.</p>
 
         <div class="card-blurb stagger show" style="transition-delay:.12s">
-          <strong>Núcleo:</strong> hierro y níquel — muy grande respecto al radio total. <br>
-          <strong>Corteza:</strong> delgada, densamente craterizada. <br>
-          <strong>Superficie:</strong> llanuras basálticas, escarpes y depósitos de impacto.
+          <strong>Núcleo:</strong> núcleo interno sólido y externo líquido que generan el campo magnético. <br>
+          <strong>Manto:</strong> convección y deformación que mueve placas. <br>
+          <strong>Corteza:</strong> placas tectónicas, océanos y cadenas montañosas.
         </div>
 
         <div class="facts stagger show" style="transition-delay:.20s">
           <div class="fact"><strong>Tipo:</strong> Planeta rocoso (telúrico)</div>
-          <div class="fact"><strong>Núcleo:</strong> ~85% del radio</div>
-          <div class="fact"><strong>Diámetro:</strong> ~4,880 km</div>
-          <div class="fact"><strong>Superficie:</strong> cráteres y escarpes</div>
+          <div class="fact"><strong>Estructura:</strong> Núcleo, manto, corteza</div>
+          <div class="fact"><strong>Superficie:</strong> océanos, continentes, montañas</div>
+          <div class="fact"><strong>Tectónica:</strong> placas activas</div>
         </div>
       </div>
 
       <aside class="media">
         <div class="sun-illustration-container" aria-hidden="false">
-          <!-- SVG: cross-section of Mercury (minimalist) -->
-          <svg class="illustration" viewBox="0 0 800 720" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Corte transversal de Mercurio">
+          <!-- SVG: schematic cross-section of Earth (technical) -->
+          <svg class="illustration" viewBox="0 0 800 720" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Corte transversal de la Tierra">
             <defs>
-              <radialGradient id="mc" cx="45%" cy="50%">
-                <stop offset="0%" stop-color="#f6f6f6"/>
-                <stop offset="45%" stop-color="#d7d7d7"/>
-                <stop offset="100%" stop-color="#9b9b9b"/>
-              </radialGradient>
+              <linearGradient id="mantleGrad" x1="0" x2="1">
+                <stop offset="0%" stop-color="#f6efdd"/>
+                <stop offset="100%" stop-color="#d7a36a"/>
+              </linearGradient>
+              <linearGradient id="coreGrad" x1="0" x2="1">
+                <stop offset="0%" stop-color="#ffd9a3"/>
+                <stop offset="100%" stop-color="#ff8a3d"/>
+              </linearGradient>
             </defs>
 
             <rect width="100%" height="100%" fill="transparent"/>
+
             <g transform="translate(400,360)">
-              <!-- outer surface with craters -->
-              <circle r="220" fill="#bdbdbd" stroke="#9a9a9a" stroke-width="2"/>
-              <g fill="#949494" opacity="0.95">
-                <circle cx="-70" cy="-40" r="18"/>
-                <circle cx="40" cy="-10" r="10"/>
-                <circle cx="20" cy="60" r="14"/>
-                <circle cx="-10" cy="20" r="8"/>
-                <circle cx="90" cy="30" r="12"/>
+              <!-- outer ocean/land rim -->
+              <circle r="220" fill="#1e6d7a" stroke="#0e3b3f" stroke-width="2"/>
+              <!-- crust band -->
+              <circle r="160" fill="#2a8f6f" stroke="#17614f" stroke-width="2"/>
+              <!-- mantle -->
+              <circle r="90" fill="url(#mantleGrad)" opacity="0.95"/>
+              <!-- core -->
+              <circle r="44" fill="url(#coreGrad)" opacity="0.98"/>
+
+              <!-- tectonic plate lines (schematic) -->
+              <g stroke="#0c2f2b" stroke-width="3" stroke-linecap="round" opacity="0.9">
+                <path d="M-160,-20 C-120,-40 -80,-20 -40,-10"/>
+                <path d="M20,-80 C60,-60 100,-40 140,-20"/>
+                <path d="M-40,60 C0,40 40,30 90,20"/>
               </g>
-
-              <!-- thin crust ring -->
-              <circle r="140" fill="none" stroke="#dcdcdc" stroke-width="2" opacity="0.08"/>
-
-              <!-- large core (visualizing ~85% radius) -->
-              <circle r="180" fill="url(#mc)" opacity="0.9"/>
-              <!-- inner detail -->
-              <circle r="70" fill="#7f7f7f" opacity="0.95"/>
 
               <!-- labels -->
-              <g transform="translate(-220,-160)" fill="#fff" font-size="14" opacity="0.9">
-                <text x="0" y="0">Corteza delgada</text>
+              <g transform="translate(-240,-160)" fill="#fff" font-size="14" opacity="0.95">
+                <text x="0" y="0">Corteza (placas)</text>
               </g>
-              <g transform="translate(-160,-20)" fill="#fff" font-size="13" opacity="0.9">
-                <text x="0" y="0">Núcleo metálico (gran proporción)</text>
+              <g transform="translate(-120,-20)" fill="#fff" font-size="13" opacity="0.95">
+                <text x="0" y="0">Manto — convección</text>
               </g>
-              <g transform="translate(-120,120)" fill="#fff" font-size="13" opacity="0.9">
-                <text x="0" y="0">Superficie craterizada</text>
+              <g transform="translate(-60,120)" fill="#fff" font-size="13" opacity="0.95">
+                <text x="0" y="0">Núcleo (generador magnético)</text>
               </g>
+            </g>
+
+            <!-- small legend -->
+            <g transform="translate(40,520)">
+              <rect x="0" y="0" width="320" height="70" rx="8" fill="rgba(255,255,255,0.02)"/>
+              <text x="14" y="26" font-size="12" fill="#fff">Corteza → Manto → Núcleo</text>
+              <text x="14" y="46" font-size="11" fill="#cfeee6">Placas tectónicas activas — volcanismo y orogénesis</text>
             </g>
           </svg>
         </div>
@@ -304,66 +307,60 @@
         <div class="meta-card">
           <div style="flex:1">
             <div style="font-weight:800">Resumen rápido</div>
-            <p style="margin:6px 0 0 0;color:var(--muted);font-size:13px">Núcleo enorme en proporción, corteza fina y superficie marcada por impactos.</p>
+            <p style="margin:6px 0 0 0;color:var(--muted);font-size:13px">Estructura por capas con dinámica interna que sostiene la tectónica y el campo magnético.</p>
           </div>
           <div class="dot" aria-hidden="true"></div>
         </div>
       </aside>
     </section>
 
-    <!-- PANEL 1: Atmósfera y temperaturas -->
+    <!-- PANEL 1: Atmósfera -->
     <section class="panel" data-index="1" id="panel-1" aria-labelledby="title-1" role="region">
       <div class="content">
         <h2 id="title-1" class="panel-title stagger">Atmósfera</h2>
-        <p class="lead stagger" style="transition-delay:.05s">Mercurio tiene una atmósfera extremadamente tenue llamada <strong>exosfera</strong>, compuesta por oxígeno, sodio, hidrógeno, helio y potasio. No retiene calor de forma eficiente.</p>
+        <p class="lead stagger" style="transition-delay:.05s">La atmósfera terrestre está compuesta principalmente de <strong>nitrógeno (≈78%)</strong> y <strong>oxígeno (≈21%)</strong>, además de trazas de otros gases. Es esencial para la vida, filtra radiación dañina y regula la temperatura.</p>
 
         <div class="card-blurb stagger" style="transition-delay:.12s">
-          La exosfera se renueva por impactos y por liberación del suelo; las temperaturas superficiales varían enormemente entre el día y la noche.
+          La atmósfera (troposfera, estratosfera, mesosfera, termosfera) contiene capas con funciones distintas: clima, ozono protector y enlaces con la magnetosfera.
         </div>
 
         <div class="facts stagger" style="transition-delay:.20s">
-          <div class="fact"><strong>Exosfera:</strong> O₂, Na, H, He, K</div>
-          <div class="fact"><strong>Retención de calor:</strong> muy baja</div>
-          <div class="fact"><strong>Temp. día:</strong> hasta 430 °C</div>
-          <div class="fact"><strong>Temp. noche:</strong> ~ -180 °C</div>
+          <div class="fact"><strong>Composición:</strong> N₂, O₂, Ar, CO₂ (trazas)</div>
+          <div class="fact"><strong>Función:</strong> protección, regulación térmica</div>
+          <div class="fact"><strong>Capas:</strong> troposfera → estratosfera → termosfera</div>
+          <div class="fact"><strong>Ozon:</strong> filtra UV</div>
         </div>
       </div>
 
       <aside class="media">
         <div class="sun-illustration-container">
-          <!-- SVG: lit hemisphere + dark hemisphere to show temperature contrast -->
-          <svg class="illustration" viewBox="0 0 800 600" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Ilustración de exosfera y temperaturas">
+          <!-- SVG: schematic atmosphere layers + ozone shield -->
+          <svg class="illustration" viewBox="0 0 800 600" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Ilustración de la atmósfera terrestre">
             <defs>
-              <linearGradient id="hotcold" x1="0" x2="1">
-                <stop offset="0%" stop-color="#bfe1ff"/>
-                <stop offset="50%" stop-color="#cfcfcf"/>
-                <stop offset="100%" stop-color="#ffbf7a"/>
-              </linearGradient>
+              <linearGradient id="atm1" x1="0" x2="0"><stop offset="0%" stop-color="#bfeee6"/><stop offset="100%" stop-color="#8fd9c9"/></linearGradient>
             </defs>
+
             <rect width="100%" height="100%" fill="transparent"/>
-            <g transform="translate(260,300)">
+            <g transform="translate(400,260)">
               <!-- planet disk -->
-              <circle r="110" fill="#bdbdbd" stroke="#9a9a9a" stroke-width="4"/>
-              <!-- sunlit side -->
-              <ellipse rx="110" ry="110" fill="url(#hotcold)" opacity="0.14" transform="translate(28,-6)"/>
+              <circle r="120" fill="#1f8b72" stroke="#0b4b3e" stroke-width="4"/>
+              <!-- atmosphere rings -->
+              <circle r="150" fill="none" stroke="url(#atm1)" stroke-width="8" opacity="0.24"/>
+              <circle r="180" fill="none" stroke="url(#atm1)" stroke-width="6" opacity="0.18"/>
+              <circle r="210" fill="none" stroke="url(#atm1)" stroke-width="4" opacity="0.12"/>
             </g>
 
-            <!-- exosphere particles (minimal dots) -->
-            <g transform="translate(480,300)" opacity="0.95" fill="#fff7d9">
-              <circle cx="-50" cy="-30" r="3" />
-              <circle cx="-20" cy="-70" r="2.2"/>
-              <circle cx="10" cy="-40" r="2.8"/>
-              <circle cx="40" cy="-10" r="2.0"/>
+            <!-- layer labels -->
+            <g transform="translate(80,420)">
+              <rect x="0" y="0" width="640" height="82" rx="10" fill="rgba(255,255,255,0.02)"/>
+              <text x="18" y="24" font-size="13" fill="#fff">Capas atmosféricas (esquema): Troposfera → Estratosfera (ozono) → Mesosfera → Termosfera</text>
+              <text x="18" y="48" font-size="12" fill="#cfeee6">Nitrógeno y Oxígeno dominan; ozono filtra UV; atmósfera mantiene temperatura estable para la vida.</text>
             </g>
 
-            <!-- temperature bar -->
-            <g transform="translate(80,440)">
-              <rect x="0" y="0" width="620" height="12" rx="6" fill="#222" opacity="0.5"/>
-              <rect x="8" y="2" width="300" height="8" rx="4" fill="#6fb3ff"/>
-              <rect x="308" y="2" width="304" height="8" rx="4" fill="#ffb36a"/>
-              <text x="0" y="-8" font-size="13" fill="#fff">Temperatura superficial</text>
-              <text x="8" y="28" font-size="12" fill="#cfcfcf">-180 °C</text>
-              <text x="588" y="28" font-size="12" fill="#ffcdb0">430 °C</text>
+            <!-- ozone badge -->
+            <g transform="translate(580,120)">
+              <circle r="26" fill="#9ce3d8" opacity="0.95"/>
+              <text x="-16" y="6" font-size="12" fill="#063A33">O₃</text>
             </g>
           </svg>
         </div>
@@ -371,7 +368,7 @@
         <div class="meta-card">
           <div style="flex:1">
             <div style="font-weight:800">Dato</div>
-            <p style="margin:6px 0 0 0;color:var(--muted);font-size:13px">La exosfera no retiene calor; la superficie sufre oscilaciones térmicas extremas.</p>
+            <p style="margin:6px 0 0 0;color:var(--muted);font-size:13px">La atmósfera no solo soporta la vida: actúa como sistema térmico y protector frente a radiación.</p>
           </div>
           <div class="dot" aria-hidden="true"></div>
         </div>
@@ -382,51 +379,46 @@
     <section class="panel" data-index="2" id="panel-2" aria-labelledby="title-2" role="region">
       <div class="content">
         <h2 id="title-2" class="panel-title stagger">Movimiento y órbita</h2>
-        <p class="lead stagger" style="transition-delay:.05s">Mercurio tiene la órbita más rápida del sistema solar: completa una vuelta en solo <strong>88 días terrestres</strong>. Su rotación es lenta; un <strong>día solar</strong> dura aproximadamente <strong>176 días terrestres</strong>.</p>
+        <p class="lead stagger" style="transition-delay:.05s">La Tierra tarda <strong>365.25 días</strong> en completar una órbita alrededor del Sol. Gira sobre su eje cada <strong>24 horas</strong>, lo que genera el ciclo día-noche. La inclinación del eje (~23.4°) produce las estaciones.</p>
 
         <div class="card-blurb stagger" style="transition-delay:.12s">
-          La diferencia entre rotación y órbita produce un día solar muy largo en Mercurio; su movimiento orbital rápido es característico.
+          La combinación de órbita elíptica y la inclinación axial determina distribución estacional de la energía solar en la superficie.
         </div>
 
         <div class="facts stagger" style="transition-delay:.20s">
-          <div class="fact"><strong>Periodo orbital:</strong> ~88 días</div>
-          <div class="fact"><strong>Día solar:</strong> ~176 días</div>
-          <div class="fact"><strong>Rotación:</strong> lenta (resonancias y particularidades)</div>
-          <div class="fact"><strong>Distancia media:</strong> ~0.39 UA</div>
+          <div class="fact"><strong>Año:</strong> 365.25 días</div>
+          <div class="fact"><strong>Rotación:</strong> ~24 h (día)</div>
+          <div class="fact"><strong>Inclinación:</strong> ~23.4° → estaciones</div>
+          <div class="fact"><strong>Órbita:</strong> casi circular (ligera excentricidad)</div>
         </div>
       </div>
 
       <aside class="media">
         <div class="sun-illustration-container">
-          <!-- SVG: orbit path and quick orbit marker -->
-          <svg class="illustration" viewBox="0 0 800 600" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Ilustración de órbita y rotación de Mercurio">
+          <!-- SVG: orbit diagram + axial tilt -->
+          <svg class="illustration" viewBox="0 0 800 600" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Ilustración de la órbita y rotación de la Tierra">
             <rect width="100%" height="100%" fill="transparent"/>
             <!-- Sun -->
             <g transform="translate(400,300)">
               <circle r="28" fill="#ffd86b" opacity="0.95"/>
             </g>
 
-            <!-- orbit ellipse -->
+            <!-- Earth's orbit -->
             <g transform="translate(400,300)">
-              <ellipse rx="220" ry="160" fill="none" stroke="#9a9a9a" stroke-dasharray="6 6" stroke-width="1.6" opacity="0.6"/>
-              <!-- planet position marker (fast along orbit) -->
-              <g transform="translate(220,0)">
-                <circle r="16" fill="#bdbdbd" stroke="#8f8f8f" stroke-width="2"/>
-                <text x="-12" y="44" font-size="12" fill="#fff">Mercurio</text>
+              <ellipse rx="260" ry="200" fill="none" stroke="#6aa79a" stroke-dasharray="6 6" stroke-width="1.6" opacity="0.6"/>
+              <!-- Earth marker -->
+              <g transform="translate(260,0)">
+                <circle r="16" fill="#1f8b72" stroke="#0b4b3e" stroke-width="2"/>
+                <!-- axis tilt indicator -->
+                <line x1="-8" y1="-20" x2="8" y2="20" stroke="#cfeee6" stroke-width="2" stroke-linecap="round" transform="rotate(23.4)"/>
+                <text x="-12" y="44" font-size="12" fill="#fff">Tierra</text>
               </g>
             </g>
 
-            <!-- rotation indicator (long day) -->
-            <g transform="translate(620,120)" opacity="0.95">
-              <path d="M10 40 A30 30 0 1 1 70 40" fill="none" stroke="#cfcfcf" stroke-width="2"/>
-              <polygon points="72,40 62,36 62,44" fill="#cfcfcf"/>
-              <text x="0" y="70" font-size="12" fill="#cfcfcf">Día solar ~176 días</text>
-            </g>
-
             <!-- annotation -->
-            <g transform="translate(80,420)">
-              <rect x="0" y="0" width="560" height="60" rx="10" fill="rgba(255,255,255,0.02)" stroke="#2a2a2a"/>
-              <text x="18" y="36" font-size="13" fill="#fff">Órbita rápida: ~88 días — rotación lenta: día muy largo</text>
+            <g transform="translate(40,420)">
+              <rect x="0" y="0" width="640" height="60" rx="10" fill="rgba(255,255,255,0.02)" stroke="#183a36"/>
+              <text x="18" y="36" font-size="13" fill="#fff">Órbita: 365.25 días — Rotación: 24 h — Inclinación axial ≈ 23.4° → estaciones</text>
             </g>
           </svg>
         </div>
@@ -434,53 +426,60 @@
         <div class="meta-card">
           <div style="flex:1">
             <div style="font-weight:800">Movimiento</div>
-            <p style="margin:6px 0 0 0;color:var(--muted);font-size:13px">Órbita corta alrededor del Sol, rotación lenta: combinación que define su día solar extenso.</p>
+            <p style="margin:6px 0 0 0;color:var(--muted);font-size:13px">Rotación y órbita combinadas producen el ritmo diario y las estaciones que modelan el clima global.</p>
           </div>
           <div class="dot" aria-hidden="true"></div>
         </div>
       </aside>
     </section>
 
-    <!-- PANEL 3: Curiosidades e influencia -->
+    <!-- PANEL 3: Influencia y curiosidades -->
     <section class="panel" data-index="3" id="panel-3" aria-labelledby="title-3" role="region">
       <div class="content">
-        <h2 id="title-3" class="panel-title stagger">Curiosidades e influencia</h2>
-        <p class="lead stagger" style="transition-delay:.05s">Mercurio presenta extremos térmicos: desde <strong>-180 °C</strong> de noche hasta <strong>430 °C</strong> de día. No tiene lunas ni anillos, y su superficie conserva registros antiguos de la formación temprana del sistema solar.</p>
+        <h2 id="title-3" class="panel-title stagger">Influencia y curiosidades</h2>
+        <p class="lead stagger" style="transition-delay:.05s">La Tierra es el único planeta conocido con vida. Tiene una <strong>Luna</strong> y un <strong>campo magnético</strong> robusto que protege la superficie de la radiación solar y cósmica.</p>
 
         <div class="card-blurb stagger" style="transition-delay:.12s">
-          Depósitos sombreados en polos pueden albergar hielo; escarpes muestran el enfriamiento y contracción del planeta tras su formación.
+          El campo magnético proviene del núcleo externo líquido; la Luna estabiliza la inclinación axial y afecta las mareas — ambos factores influyen en el clima y la habitabilidad.
         </div>
 
         <div class="facts stagger" style="transition-delay:.20s">
-          <div class="fact"><strong>Temperatura:</strong> -180 °C a 430 °C</div>
-          <div class="fact"><strong>Lunas:</strong> ninguna</div>
-          <div class="fact"><strong>Anillos:</strong> no</div>
-          <div class="fact"><strong>Interés:</strong> pistas sobre el Sistema Solar temprano</div>
+          <div class="fact"><strong>Vida:</strong> único planeta conocido</div>
+          <div class="fact"><strong>Luna:</strong> presente — influencia mareas</div>
+          <div class="fact"><strong>Campo magnético:</strong> fuerte — protección</div>
+          <div class="fact"><strong>Agua:</strong> océanos cubren ~71% de la superficie</div>
         </div>
       </div>
 
       <aside class="media">
         <div class="sun-illustration-container">
-          <!-- SVG: thermal contrast + no moons -->
-          <svg class="illustration" viewBox="0 0 800 600" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Ilustración de curiosidades de Mercurio">
+          <!-- SVG: magnetosphere + Moon + ocean emphasis -->
+          <svg class="illustration" viewBox="0 0 800 600" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Ilustración de la magnetosfera y la Luna">
             <rect width="100%" height="100%" fill="transparent"/>
-            <!-- planet disk -->
-            <g transform="translate(220,300)">
-              <circle r="60" fill="#d0d0d0" stroke="#9a9a9a" stroke-width="3"/>
-              <text x="-46" y="86" font-size="12" fill="#fff">Superficie craterizada</text>
+
+            <!-- Earth -->
+            <g transform="translate(260,300)">
+              <circle r="64" fill="#1f8b72" stroke="#0b4b3e" stroke-width="3"/>
+              <text x="-36" y="86" font-size="12" fill="#fff">Océanos (~71%)</text>
             </g>
 
-            <!-- polar ice hint (small pale spot) -->
-            <g transform="translate(420,300)">
-              <circle r="40" fill="#bdbdbd"/>
-              <circle cx="-10" cy="-10" r="8" fill="#e8f7ff" opacity="0.95"/>
-              <text x="-56" y="86" font-size="12" fill="#fff">Hielo en cráteres polares (sombra)</text>
+            <!-- magnetosphere arcs -->
+            <g transform="translate(260,300)" stroke="#8fe8d8" stroke-width="3" fill="none" opacity="0.9">
+              <path d="M-160,0 C-120,-100 -80,-120 -40,-120"/>
+              <path d="M-160,0 C-120,100 -80,120 -40,120"/>
             </g>
 
-            <!-- no moons badge -->
-            <g transform="translate(600,420)">
-              <rect x="-38" y="-24" width="76" height="36" rx="8" fill="rgba(255,255,255,0.02)" stroke="#2a2a2a"/>
-              <text x="-26" y="-2" font-size="13" fill="#cfcfcf">Sin lunas</text>
+            <!-- Moon -->
+            <g transform="translate(520,220)">
+              <circle r="20" fill="#e6e6e6" stroke="#cfcfcf" stroke-width="2"/>
+              <text x="-18" y="40" font-size="12" fill="#fff">Luna</text>
+            </g>
+
+            <!-- legend -->
+            <g transform="translate(40,440)">
+              <rect x="0" y="0" width="640" height="70" rx="8" fill="rgba(255,255,255,0.02)"/>
+              <text x="14" y="26" font-size="13" fill="#fff">Campo magnético desvía partículas cargadas — protege la biosfera.</text>
+              <text x="14" y="46" font-size="11" fill="#cfeee6">La Luna estabiliza la inclinación axial y genera mareas importantes para procesos biológicos.</text>
             </g>
           </svg>
         </div>
@@ -488,7 +487,7 @@
         <div class="meta-card">
           <div style="flex:1">
             <div style="font-weight:800">Perspectiva</div>
-            <p style="margin:6px 0 0 0;color:var(--muted);font-size:13px">Mercurio conserva evidencia geológica temprana y extremos que nos ayudan a entender la evolución planetaria.</p>
+            <p style="margin:6px 0 0 0;color:var(--muted);font-size:13px">La combinación de atmósfera, agua, campo magnético y luna hacen de la Tierra un entorno excepcionalmente habitable.</p>
           </div>
           <div class="dot" aria-hidden="true"></div>
         </div>
