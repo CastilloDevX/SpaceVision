@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1.0" />
+<title>JÚPITER — Archivo Planetario Interactivo</title>
+
+<!-- Fuente -->
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;800&display=swap" rel="stylesheet">
+
+<style>
+:root{
+  --bg1: #050611;
+  --bg2: #07101a;
+  --accent-1: #e6b06a; /* dorado suave */
+  --accent-2: #b85a12; /* naranja cobrizo */
+  --glass: rgba(255,255,255,0.04);
+  --card-border: rgba(230,176,106,0.08);
+  --text: #f7f6f2;
+  --muted: rgba(247,246,242,0.75);
+  --soft-shadow: 0 12px 40px rgba(0,0,0,0.6);
+  --radius: 18px;
+}
+
+/* Reset */
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;
+  font-family:"Poppins",system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial;
+  color:var(--text);
+  background:
+    radial-gradient(1000px 500px at 10% 10%, rgba(200,120,50,0.03), transparent 8%),
+    radial-gradient(800px 400px at 90% 90%, rgba(180,100,40,0.02), transparent 6%),
+    linear-gradient(180deg,var(--bg1),var(--bg2) 60%, #000 100%);
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
+  overflow:hidden;
+}
+
+/* Top header */
+header.app-header{
+  position:fixed;left:0;right:0;top:0;height:86px;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:14px 28px;gap:18px;z-index:60;
+  background:linear-gradient(180deg, rgba(0,0,0,0.12), rgba(0,0,0,0.06));
+  border-bottom:1px solid rgba(255,255,255,0.03);
+  backdrop-filter: blur(6px);
+}
+
+.brand{display:flex;align-items:center;gap:16px}
+.jupiter-emblem{
+  width:64px;height:64px;border-radius:50%;
+  background: radial-gradient(circle at 30% 25%, #fff2d9 0%, #f0c28a 10%, #d88a3e 45%, #b85a12 80%);
+  box-shadow: 0 12px 40px rgba(184,90,18,0.12), inset 0 -6px 18px rgba(0,0,0,0.06);
+  display:flex;align-items:center;justify-content:center;
+  transform-origin:center;
+  animation: slowTilt 10s ease-in-out infinite;
+  border:1px solid rgba(255,255,255,0.04);
+}
+@keyframes slowTilt{0%{transform:rotate(0deg)}50%{transform:rotate(-6deg)}100%{transform:rotate(0deg)}}
+
+.brand h1{font-size:18px;margin:0;font-weight:800;letter-spacing:.6px}
+.brand p{margin:2px 0 0;font-size:12px;color:var(--muted)}
+
+/* Top nav */
+nav.top-nav{display:flex;gap:10px;align-items:center}
+.nav-btn{
+  display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border-radius:999px;
+  background:transparent;border:1px solid rgba(255,255,255,0.03);
+  color:var(--text);font-weight:700;font-size:13px;cursor:pointer;
+  transition:transform .28s, box-shadow .28s, background .28s;
+  backdrop-filter: blur(6px);
+}
+.nav-btn svg{width:18px;height:18px;display:block}
+.nav-btn:hover{transform:translateY(-6px) scale(1.03);box-shadow:0 12px 30px rgba(184,90,18,0.12)}
+.nav-btn.active{background:linear-gradient(90deg, rgba(230,176,106,0.12), rgba(184,90,18,0.06));box-shadow:0 14px 36px rgba(184,90,18,0.14)}
+
+/* Viewport */
+main.viewport{
+  position:fixed;left:0;right:0;top:86px;bottom:0;overflow:hidden;padding:28px 5%;
+  z-index:20;display:flex;align-items:center;justify-content:center;
+}
+
+/* Panels container */
+.panels{
+  width:1200px;max-width:calc(100% - 80px);height:calc(100% - 120px);
+  position:relative;
+  overflow:visible;
+  display:flex;align-items:center;justify-content:center;
+}
+
+/* Panel base */
+.panel{
+  position:absolute;inset:0;margin:auto;
+  width:100%;height:100%;max-height:980px;
+  display:grid;grid-template-columns: 1fr 480px;gap:36px;align-items:center;
+  padding:48px;border-radius:20px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.006));
+  border: 1px solid rgba(255,255,255,0.03);
+  box-shadow: var(--soft-shadow);
+  transform: translateX(140%) scale(.98);
+  opacity:0;transition: transform .8s cubic-bezier(.2,.9,.25,1), opacity .5s;
+  will-change: transform, opacity;
+  overflow: hidden;
+}
+.panel.active{transform: translateX(0) scale(1);opacity:1;z-index:30}
+
+/* Panel inner content */
+.content{
+  padding-right:6%;
+  max-width:920px;
+}
+.panel-title{font-size:40px;color:var(--accent-1);margin:0 0 10px 0;letter-spacing:.4px}
+.lead{font-size:18px;color:var(--muted);line-height:1.6;margin-bottom:18px}
+.card-blurb{
+  background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.008));
+  padding:18px;border-radius:14px;border:1px solid var(--card-border);
+}
+
+.facts{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:18px}
+.fact{background:rgba(255,255,255,0.02);padding:10px;border-radius:10px;font-weight:600;color:var(--muted);font-size:13px}
+
+/* Right column - vector illustration + mini-card */
+.media{
+  display:flex;flex-direction:column;align-items:center;gap:18px;justify-content:center;padding-left:6%;
+}
+
+.illustration-wrap{
+  width:100%;max-width:460px;height:420px;border-radius:16px;
+  display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(180deg, rgba(0,0,0,0.18), rgba(0,0,0,0.12));
+  border:1px solid rgba(255,255,255,0.03);
+  box-shadow: 0 18px 50px rgba(0,0,0,0.6);
+  overflow:hidden;position:relative;
+}
+
+/* SVG container scales nicely */
+.illustration{
+  width:90%;height:90%;
+  display:block;
+  transform-origin:center;
+  transition: transform .8s cubic-bezier(.2,.9,.25,1), filter .6s;
+  filter: drop-shadow(0 12px 40px rgba(184,90,18,0.12));
+}
+.illustration-wrap:hover .illustration{ transform: scale(1.03) rotate(-3deg) }
+
+.meta-card{
+  width:100%;padding:12px;border-radius:12px;background:rgba(255,255,255,0.02);
+  border:1px solid var(--card-border);display:flex;gap:12px;align-items:center;
+}
+.meta-card .dot{width:14px;height:14px;border-radius:50%;background:var(--accent-1)}
+.meta-card p{margin:0;font-size:13px;color:var(--muted)}
+
+/* Side progress */
+.side-progress{
+  position:fixed;right:22px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:12px;z-index:40;
+}
+.dot-btn{width:14px;height:14px;border-radius:50%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.03);cursor:pointer}
+.dot-btn.active{background:linear-gradient(180deg,var(--accent-1),var(--accent-2));box-shadow:0 10px 26px rgba(184,90,18,0.18);transform:scale(1.25)}
+
+/* Responsive */
+@media (max-width:1100px){
+  .panels{max-width:calc(100% - 60px)}
+  .panel{grid-template-columns: 1fr 380px;padding:32px}
+  .illustration-wrap{height:360px}
+}
+@media (max-width:900px){
+  main.viewport{padding:18px}
+  .panel{grid-template-columns:1fr;padding:22px;border-radius:14px}
+  .illustration-wrap{max-width:100%;height:320px}
+}
+@media (max-width:640px){
+  .panel{grid-template-columns:1fr;gap:18px;padding:18px;align-items:flex-start}
+  .media{order:-1;padding-left:0}
+  .illustration-wrap{height:260px}
+  .panel-title{font-size:28px}
+}
+
+/* staging reveals */
+.stagger{opacity:0;transform:translateY(8px);transition: all .6s cubic-bezier(.2,.9,.25,1)}
+.stagger.show{opacity:1;transform:none}
+</style>
+</head>
+<body>
+
+<!-- Partículas (canvas) -->
+<canvas id="particle-canvas" style="position:fixed;inset:0;z-index:5;pointer-events:none"></canvas>
+
+<header class="app-header" role="banner">
+  <div class="brand" aria-hidden="false">
+    <div class="jupiter-emblem" aria-hidden="true">
+      <!-- decorative stripes for emblem -->
+      <svg width="42" height="42" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <defs>
+          <linearGradient id="jem" x1="0" x2="1">
+            <stop offset="0%" stop-color="#f6dec1"/>
+            <stop offset="50%" stop-color="#d89b63"/>
+            <stop offset="100%" stop-color="#b85a12"/>
+          </linearGradient>
+        </defs>
+        <circle cx="32" cy="32" r="30" fill="url(#jem)" />
+        <g fill="#a05a2a" opacity="0.45">
+          <rect x="6" y="18" width="52" height="4" rx="2" />
+          <rect x="6" y="28" width="52" height="4" rx="2" />
+          <rect x="6" y="38" width="52" height="4" rx="2" />
+        </g>
+      </svg>
+    </div>
+    <div>
+      <h1>JÚPITER</h1>
+      <p>Archivo Planetario Interactivo</p>
+    </div>
+  </div>
+
+  <nav class="top-nav" role="navigation" aria-label="Navegación principal">
+    <button class="nav-btn active" data-target="0" aria-pressed="true" title="Composición y estructura">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+      Estructura
+    </button>
+
+    <button class="nav-btn" data-target="1" title="Atmósfera y características">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v4"/><path d="M5 7h14"/><path d="M3 13h18"/></svg>
+      Atmósfera
+    </button>
+
+    <button class="nav-btn" data-target="2" title="Movimiento y órbita">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 3v9l3 3"/></svg>
+      Órbita
+    </button>
+
+    <button class="nav-btn" data-target="3" title="Curiosidades e influencia">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l2 5 5 .5-4 3 1.5 5L12 14l-4.5 2.5L9 10 5 7.5 10 7z"/></svg>
+      Curiosidades
+    </button>
+  </nav>
+</header>
+
+<main class="viewport" role="main">
+  <div class="panels">
+
+    <!-- PANEL 0: Composición y estructura -->
+    <section class="panel active" data-index="0" id="panel-0" aria-labelledby="title-0" role="region">
+      <div class="content">
+        <h2 id="title-0" class="panel-title stagger show">Composición y estructura</h2>
+        <p class="lead stagger show" style="transition-delay:.05s">Júpiter es un gigante gaseoso compuesto principalmente por <strong>hidrógeno y helio</strong>. No tiene una superficie sólida bien definida; posiblemente posee un núcleo denso (rocoso o metálico) rodeado por capas profundas de hidrógeno metálico y gas.</p>
+
+        <div class="card-blurb stagger show" style="transition-delay:.12s">
+          <strong>Estructura:</strong> atmósfera superior de nubes, capas de gas y hidrógeno metálico en profundidad; núcleo central de composición incierta. <br>
+          <strong>Composición:</strong> mayoritariamente H₂ y He con trazas de compuestos volátiles.
+        </div>
+
+        <div class="facts stagger show" style="transition-delay:.20s">
+          <div class="fact"><strong>Tipo:</strong> Gigante gaseoso</div>
+          <div class="fact"><strong>Composición:</strong> H₂ / He principalmente</div>
+          <div class="fact"><strong>Diámetro:</strong> ~139,820 km</div>
+          <div class="fact"><strong>Núcleo:</strong> posiblemente rocoso/denso</div>
+        </div>
+      </div>
+
+      <aside class="media">
+        <div class="illustration-wrap" aria-hidden="false">
+          <!-- Inline SVG vector: stylized Jupiter cross-section / bands -->
+          <svg class="illustration" viewBox="0 0 800 720" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Esquema vectorial de Júpiter">
+            <defs>
+              <linearGradient id="jband1" x1="0" x2="1"><stop offset="0%" stop-color="#f6d9b3"/><stop offset="100%" stop-color="#d48b4a"/></linearGradient>
+              <linearGradient id="jband2" x1="0" x2="1"><stop offset="0%" stop-color="#eecfad"/><stop offset="100%" stop-color="#b86a2e"/></linearGradient>
+              <radialGradient id="jcore" cx="50%" cy="50%"><stop offset="0%" stop-color="#ffdcae"/><stop offset="60%" stop-color="#e19a55"/><stop offset="100%" stop-color="#6b3e1a"/></radialGradient>
+              <filter id="glowj" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="8" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+            </defs>
+
+            <rect width="100%" height="100%" fill="transparent"/>
+            <g transform="translate(400,360)">
+              <!-- planet disk with bands -->
+              <defs>
+                <clipPath id="disk"><circle cx="0" cy="0" r="220"/></clipPath>
+              </defs>
+
+              <!-- layered bands -->
+              <g clip-path="url(#disk)">
+                <rect x="-300" y="-240" width="600" height="480" fill="#deb08a"/>
+                <g>
+                  <rect x="-300" y="-240" width="600" height="60" fill="url(#jband1)" opacity="0.95"/>
+                  <rect x="-300" y="-180" width="600" height="48" fill="url(#jband2)" opacity="0.95"/>
+                  <rect x="-300" y="-132" width="600" height="44" fill="url(#jband1)" opacity="0.95"/>
+                  <rect x="-300" y="-88" width="600" height="40" fill="url(#jband2)" opacity="0.95"/>
+                  <rect x="-300" y="-48" width="600" height="38" fill="url(#jband1)" opacity="0.95"/>
+                  <rect x="-300" y="-8" width="600" height="34" fill="url(#jband2)" opacity="0.95"/>
+                  <rect x="-300" y="28" width="600" height="40" fill="url(#jband1)" opacity="0.95"/>
+                  <rect x="-300" y="68" width="600" height="44" fill="url(#jband2)" opacity="0.95"/>
+                  <rect x="-300" y="112" width="600" height="44" fill="url(#jband1)" opacity="0.95"/>
+                </g>
+
+                <!-- Great Red Spot -->
+                <g transform="translate(90,30) rotate(-12)">
+                  <ellipse rx="62" ry="38" fill="#b85a12" opacity="0.95" filter="url(#glowj)"/>
+                  <ellipse rx="42" ry="24" fill="#e8a26a" opacity="0.9"/>
+                </g>
+              </g>
+
+              <!-- outer circle edge -->
+              <circle r="220" fill="none" stroke="#9a6a3e" stroke-width="2"/>
+
+              <!-- semi-schematic core indicator -->
+              <circle r="48" fill="url(#jcore)" opacity="0.9" transform="translate(-90,80)"/>
+              <g transform="translate(-260,-170)" fill="#fff" font-size="13" opacity="0.9">
+                <text x="0" y="0">Capas de gas y hidrógeno metálico</text>
+              </g>
+            </g>
+          </svg>
+        </div>
+
+        <div class="meta-card">
+          <div style="flex:1">
+            <div style="font-weight:800">Resumen rápido</div>
+            <p style="margin:6px 0 0 0;color:var(--muted);font-size:13px">Gigante gaseoso; estructura por capas profundas y un núcleo denso probable.</p>
+          </div>
+          <div class="dot" aria-hidden="true"></div>
+        </div>
+      </aside>
+    </section>
+
+    <!-- PANEL 1: Atmósfera -->
+    <section class="panel" data-index="1" id="panel-1" aria-labelledby="title-1" role="region">
+      <div class="content">
+        <h2 id="title-1" class="panel-title stagger">Atmósfera</h2>
+        <p class="lead stagger" style="transition-delay:.05s">La atmósfera de Júpiter está dominada por <strong>nubes de amoníaco</strong>, vapor de agua en capas inferiores y abundante hidrógeno y helio. Presenta bandas de viento muy marcadas y tormentas persistentes.</p>
+
+        <div class="card-blurb stagger" style="transition-delay:.12s">
+          Destaca la <strong>Gran Mancha Roja</strong>, una tormenta anticiclónica gigante que lleva siglos activa. Las bandas claras y oscuras indican corrientes zonales y diferencias químicas/temperaturas.
+        </div>
+
+        <div class="facts stagger" style="transition-delay:.20s">
+          <div class="fact"><strong>Nubes:</strong> amoníaco, agua (capas)</div>
+          <div class="fact"><strong>Gran Mancha Roja:</strong> tormenta gigante</div>
+          <div class="fact"><strong>Vientos:</strong> hasta cientos km/h</div>
+          <div class="fact"><strong>Composición:</strong> H₂, He</div>
+        </div>
+      </div>
+
+      <aside class="media">
+        <div class="illustration-wrap">
+          <!-- Inline SVG: stylized atmosphere & bands animation feel -->
+          <svg class="illustration" viewBox="0 0 800 600" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Ilustración vectorial de la atmósfera de Júpiter">
+            <defs>
+              <linearGradient id="bandA" x1="0" x2="1"><stop offset="0%" stop-color="#f6d9b3"/><stop offset="100%" stop-color="#d48b4a"/></linearGradient>
+              <linearGradient id="bandB" x1="0" x2="1"><stop offset="0%" stop-color="#e9c9a8"/><stop offset="100%" stop-color="#b86a2e"/></linearGradient>
+            </defs>
+
+            <rect width="100%" height="100%" fill="transparent"/>
+            <g transform="translate(260,300)">
+              <circle r="110" fill="url(#bandA)" stroke="#8f5a32" stroke-width="3"/>
+              <g transform="translate(28,6) rotate(-8)">
+                <ellipse rx="28" ry="18" fill="#b85a12" opacity="0.95"/>
+                <ellipse rx="18" ry="10" fill="#f0c28a" opacity="0.9" transform="translate(4,2)"/>
+              </g>
+              <!-- stylized flow lines -->
+              <g stroke="#fff3d9" stroke-width="2" opacity="0.12" fill="none">
+                <path d="M-140,-40 C-60,-20 60,-20 140,-40" />
+                <path d="M-140,0 C-40,20 40,20 140,0" />
+                <path d="M-140,40 C-60,60 60,60 140,40" />
+              </g>
+            </g>
+
+            <g transform="translate(520,380)" opacity="0.95" fill="#fff" font-size="12">
+              <text x="-120" y="-10">Gran Mancha Roja</text>
+              <text x="-120" y="6" font-size="11" fill="#d7b08a">(tormenta persistente)</text>
+            </g>
+          </svg>
+        </div>
+
+        <div class="meta-card">
+          <div style="flex:1">
+            <div style="font-weight:800">Dato</div>
+            <p style="margin:6px 0 0 0;color:var(--muted);font-size:13px">Las bandas y tormentas revelan dinámica atmosférica compleja con corrientes rápidas y vórtices gigantes.</p>
+          </div>
+          <div class="dot" aria-hidden="true"></div>
+        </div>
+      </aside>
+    </section>
+
+    <!-- PANEL 2: Movimiento y órbita -->
+    <section class="panel" data-index="2" id="panel-2" aria-labelledby="title-2" role="region">
+      <div class="content">
+        <h2 id="title-2" class="panel-title stagger">Movimiento y órbita</h2>
+        <p class="lead stagger" style="transition-delay:.05s">Júpiter tarda casi <strong>12 años terrestres</strong> en completar una órbita alrededor del Sol. Gira muy rápidamente: un día jupiteriano dura aproximadamente <strong>10 horas</strong>, lo que produce un notable achatamiento ecuatorial.</p>
+
+        <div class="card-blurb stagger" style="transition-delay:.12s">
+          Su rápida rotación genera fuertes bandas zonales y una forma oblata; además actúa como un gran regulador dinámico del sistema solar al influir gravitacionalmente en objetos y cometas.
+        </div>
+
+        <div class="facts stagger" style="transition-delay:.20s">
+          <div class="fact"><strong>Periodo orbital:</strong> ~11.86 años</div>
+          <div class="fact"><strong>Rotación:</strong> ~10 horas</div>
+          <div class="fact"><strong>Oblaticidad:</strong> notable (achatamiento)</div>
+          <div class="fact"><strong>Distancia media:</strong> ~5.2 UA</div>
+        </div>
+      </div>
+
+      <aside class="media">
+        <div class="illustration-wrap">
+          <!-- Inline SVG: orbit depiction + fast spin indicator -->
+          <svg class="illustration" viewBox="0 0 800 600" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Ilustración vectorial del movimiento y órbita de Júpiter">
+            <rect width="100%" height="100%" fill="transparent"/>
+            <g transform="translate(400,300)">
+              <!-- Sun -->
+              <circle r="26" fill="#ffcf8b" opacity="0.95"/>
+              <!-- orbit path -->
+              <ellipse rx="300" ry="220" fill="none" stroke="#6f6f6f" stroke-dasharray="6 6" stroke-width="1.6" opacity="0.6"/>
+              <!-- Jupiter on orbit -->
+              <g transform="translate(300,0)">
+                <ellipse rx="30" ry="24" fill="#d8995f" stroke="#8a5228" stroke-width="2"/>
+                <text x="-18" y="48" font-size="12" fill="#fff">Júpiter</text>
+              </g>
+              <!-- rotation indicator -->
+              <g transform="translate(-220,-120)" opacity="0.95" fill="#fff" font-size="12">
+                <path d="M10 40 A30 30 0 1 1 70 40" fill="none" stroke="#d7b08a" stroke-width="2"/>
+                <polygon points="72,40 62,36 62,44" fill="#d7b08a"/>
+                <text x="0" y="70">Rotación rápida — día ~10 horas</text>
+              </g>
+            </g>
+          </svg>
+        </div>
+
+        <div class="meta-card">
+          <div style="flex:1">
+            <div style="font-weight:800">Movimiento</div>
+            <p style="margin:6px 0 0 0;color:var(--muted);font-size:13px">Rotación veloz y gran influencia gravitatoria en el sistema solar exterior.</p>
+          </div>
+          <div class="dot" aria-hidden="true"></div>
+        </div>
+      </aside>
+    </section>
+
+    <!-- PANEL 3: Curiosidades e influencia -->
+    <section class="panel" data-index="3" id="panel-3" aria-labelledby="title-3" role="region">
+      <div class="content">
+        <h2 id="title-3" class="panel-title stagger">Curiosidades e influencia</h2>
+        <p class="lead stagger" style="transition-delay:.05s">Júpiter es el planeta más grande del sistema solar y posee un poderoso campo magnético. Alerta y redirige muchos cometas y asteroides por su enorme gravedad, protegiendo parcialmente los planetas interiores.</p>
+
+        <div class="card-blurb stagger" style="transition-delay:.12s">
+          Tiene más de <strong>90 lunas conocidas</strong>, incluyendo Ganímedes (la mayor luna del sistema solar). Su intenso campo magnético y radiación hacen su entorno peligroso para sondas cercanas.
+        </div>
+
+        <div class="facts stagger" style="transition-delay:.20s">
+          <div class="fact"><strong>Tamaño:</strong> mayor del sistema solar</div>
+          <div class="fact"><strong>Lunas:</strong> >90 (Ganímedes, Europa, Io, Calisto)</div>
+          <div class="fact"><strong>Campo magnético:</strong> muy fuerte</div>
+          <div class="fact"><strong>Rol:</strong> modulador gravitacional del sistema</div>
+        </div>
+      </div>
+
+      <aside class="media">
+        <div class="illustration-wrap">
+          <!-- Inline SVG: moons and magnetosphere stylized -->
+          <svg class="illustration" viewBox="0 0 800 600" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Ilustración vectorial de lunas y magnetosfera de Júpiter">
+            <rect width="100%" height="100%" fill="transparent"/>
+            <g transform="translate(220,300)">
+              <!-- Jupiter small -->
+              <circle r="56" fill="#d79966" stroke="#8f5230" stroke-width="4"/>
+              <text x="-40" y="86" font-size="12" fill="#fff">Júpiter</text>
+            </g>
+
+            <!-- moons -->
+            <g transform="translate(420,300)">
+              <circle cx="-160" cy="-10" r="10" fill="#cfcfcf"/><text x="-174" y="10" font-size="11" fill="#fff">Io</text>
+              <circle cx="-90" cy="-30" r="12" fill="#e7f6ff"/><text x="-106" y="-8" font-size="11" fill="#fff">Europa</text>
+              <circle cx="-20" cy="-48" r="14" fill="#d9d9d9"/><text x="-38" y="-26" font-size="11" fill="#fff">Ganimedes</text>
+              <circle cx="60" cy="-30" r="11" fill="#cfcfcf"/><text x="44" y="-8" font-size="11" fill="#fff">Calisto</text>
+            </g>
+
+            <!-- magnetosphere arcs -->
+            <g transform="translate(400,300)" fill="none" stroke="#9be3ff" stroke-width="2" opacity="0.9">
+              <path d="M-160,0 C-240,-80 -260,-160 -120,-200"/>
+              <path d="M-160,0 C-240,80 -260,160 -120,200"/>
+            </g>
+
+            <g transform="translate(520,420)" opacity="0.95" fill="#fff" font-size="12">
+              <text x="-120" y="-10">Ganímedes — la mayor luna</text>
+            </g>
+          </svg>
+        </div>
+
+        <div class="meta-card">
+          <div style="flex:1">
+            <div style="font-weight:800">Perspectiva</div>
+            <p style="margin:6px 0 0 0;color:var(--muted);font-size:13px">Júpiter domina la dinámica del sistema exterior y alberga lunas clave para la exploración futura.</p>
+          </div>
+          <div class="dot" aria-hidden="true"></div>
+        </div>
+      </aside>
+    </section>
+
+  </div>
+</main>
+
+<!-- side progress -->
+<div class="side-progress" aria-hidden="false">
+  <div class="dot-btn active" data-target="0" title="Estructura"></div>
+  <div class="dot-btn" data-target="1" title="Atmósfera"></div>
+  <div class="dot-btn" data-target="2" title="Órbita"></div>
+  <div class="dot-btn" data-target="3" title="Curiosidades"></div>
+</div>
+
+<script>
+/* ---------------------------
+   Partículas sutiles - Canvas
+   --------------------------- */
+(function particles(){
+  const canvas = document.getElementById('particle-canvas');
+  const ctx = canvas.getContext('2d');
+  let w = canvas.width = innerWidth, h = canvas.height = innerHeight;
+  window.addEventListener('resize', ()=>{ w=canvas.width=innerWidth; h=canvas.height=innerHeight; });
+
+  const N = Math.round((w*h)/70000);
+  const parts = Array.from({length: Math.max(60, N)}, () => ({
+    x: Math.random()*w,
+    y: Math.random()*h,
+    r: Math.random()*1.8 + 0.3,
+    vx: (Math.random()-0.5)*0.15,
+    vy: (Math.random()-0.5)*0.15,
+    alpha: Math.random()*0.6 + 0.12
+  }));
+
+  function step(){
+    ctx.clearRect(0,0,w,h);
+    for(const p of parts){
+      p.x += p.vx;
+      p.y += p.vy;
+      if(p.x < -10) p.x = w + 10;
+      if(p.x > w + 10) p.x = -10;
+      if(p.y < -10) p.y = h + 10;
+      if(p.y > h + 10) p.y = -10;
+      ctx.beginPath();
+      ctx.fillStyle = 'rgba(255,255,255,'+ (p.alpha*0.8) +')';
+      ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+      ctx.fill();
+    }
+    requestAnimationFrame(step);
+  }
+  step();
+})();
+
+/* ---------------------------
+   Navigation logic (panels)
+   --------------------------- */
+const panels = Array.from(document.querySelectorAll('.panel'));
+const navBtns = Array.from(document.querySelectorAll('.nav-btn'));
+const dots = Array.from(document.querySelectorAll('.dot-btn'));
+let current = 0;
+const STAGGER_DELAY = 90;
+
+function setActive(index, direction=1){
+  if(index === current) return;
+  // clamp
+  index = Math.max(0, Math.min(panels.length-1, index));
+  const prev = current;
+  const next = index;
+  // remove active from previous
+  panels[prev].classList.remove('active');
+  navBtns[prev].classList.remove('active');
+  navBtns[prev].setAttribute('aria-pressed','false');
+  dots[prev].classList.remove('active');
+
+  // activate next
+  panels[next].classList.add('active');
+  navBtns[next].classList.add('active');
+  navBtns[next].setAttribute('aria-pressed','true');
+  dots[next].classList.add('active');
+
+  // reveal staggered children for polish
+  revealStagger(panels[next]);
+
+  // update current
+  current = next;
+  // update URL hash (optional)
+  history.replaceState(null, '', '#p' + next);
+}
+
+function revealStagger(panelEl){
+  const items = panelEl.querySelectorAll('.stagger');
+  items.forEach((it, i) => {
+    it.classList.remove('show');
+    setTimeout(()=> it.classList.add('show'), i * STAGGER_DELAY + 90);
+  });
+}
+
+// init nav click
+navBtns.forEach(b => b.addEventListener('click', ()=> {
+  const target = Number(b.dataset.target);
+  setActive(target, target > current ? 1 : -1);
+}));
+
+dots.forEach(d => d.addEventListener('click', ()=> {
+  const target = Number(d.dataset.target);
+  setActive(target, target > current ? 1 : -1);
+}));
+
+// keyboard navigation
+window.addEventListener('keydown', e => {
+  if(e.key === 'ArrowRight'){ if(current < panels.length-1) setActive(current+1,1); }
+  if(e.key === 'ArrowLeft'){ if(current > 0) setActive(current-1,-1); }
+});
+
+// swipe support
+(function swipe(){
+  let sx=0, sy=0;
+  window.addEventListener('touchstart', e => {
+    sx = e.touches[0].clientX; sy = e.touches[0].clientY;
+  }, {passive:true});
+  window.addEventListener('touchend', e => {
+    const ex = e.changedTouches[0].clientX;
+    const dx = ex - sx;
+    if(Math.abs(dx) > 50){
+      if(dx < 0 && current < panels.length-1) setActive(current+1,1);
+      if(dx > 0 && current > 0) setActive(current-1,-1);
+    }
+  }, {passive:true});
+})();
+
+// Reveal first panel on load (stagger children)
+document.addEventListener('DOMContentLoaded', ()=> {
+  revealStagger(panels[0]);
+  // if URL has hash like #p2 open it
+  const hash = window.location.hash;
+  if(hash && hash.startsWith('#p')){
+    const idx = parseInt(hash.slice(2));
+    if(!isNaN(idx) && idx >= 0 && idx < panels.length) setActive(idx);
+  }
+});
+</script>
+</body>
+</html>

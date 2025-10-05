@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+  <title>Neptuno — Explorador Vectorial</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;800&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg1: #02061b;
+      --bg2: #071033;
+      --accent-1: #6ad0ff;
+      --accent-2: #2aa0ff;
+      --glass: rgba(255,255,255,0.03);
+      --card-border: rgba(106,208,255,0.06);
+      --text: #eaf6ff;
+      --muted: rgba(234,246,255,0.78);
+      --soft-shadow: 0 12px 40px rgba(0,0,0,0.65);
+      --radius: 18px;
+    }
+
+    /* Reset */
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family:"Poppins",system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial;
+      color:var(--text);
+      background:
+        radial-gradient(1000px 500px at 10% 10%, rgba(42,160,255,0.03), transparent 8%),
+        radial-gradient(800px 400px at 90% 90%, rgba(106,208,255,0.02), transparent 6%),
+        linear-gradient(180deg,var(--bg1),var(--bg2) 60%, #000 100%);
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+      overflow:hidden;
+    }
+
+    /* Top header */
+    header.app-header{
+      position:fixed;left:0;right:0;top:0;height:86px;
+      display:flex;align-items:center;justify-content:space-between;
+      padding:14px 28px;gap:18px;z-index:60;
+      background:linear-gradient(180deg, rgba(0,0,0,0.12), rgba(0,0,0,0.06));
+      border-bottom:1px solid rgba(255,255,255,0.03);
+      backdrop-filter: blur(6px);
+    }
+    .brand{display:flex;align-items:center;gap:16px}
+    .neptune-emblem{
+      width:64px;height:64px;border-radius:50%;
+      background: radial-gradient(circle at 35% 30%, #d7fbff 0%, #7ee0ff 12%, #3fb7ff 55%, #077bd1 95%);
+      box-shadow: 0 12px 40px rgba(30,140,220,0.13), inset 0 -6px 18px rgba(0,0,0,0.08);
+      display:flex;align-items:center;justify-content:center;
+      transform-origin:center; animation: slowSpin 24s linear infinite;
+      border:1px solid rgba(255,255,255,0.03);
+    }
+    @keyframes slowSpin{to{transform:rotate(360deg)}}
+    .brand h1{font-size:18px;margin:0;font-weight:800;letter-spacing:.6px}
+    .brand p{margin:2px 0 0;font-size:12px;color:var(--muted)}
+
+    /* Top nav */
+    nav.top-nav{display:flex;gap:10px;align-items:center}
+    .nav-btn{
+      display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border-radius:999px;
+      background:transparent;border:1px solid rgba(255,255,255,0.03);
+      color:var(--text);font-weight:700;font-size:13px;cursor:pointer;
+      transition:transform .28s, box-shadow .28s, background .28s;backdrop-filter: blur(6px);
+    }
+    .nav-btn svg{width:18px;height:18px;display:block}
+    .nav-btn:hover{transform:translateY(-6px) scale(1.03);box-shadow:0 12px 30px rgba(42,160,255,0.12)}
+    .nav-btn.active{background:linear-gradient(90deg, rgba(106,208,255,0.10), rgba(42,160,255,0.06));box-shadow:0 14px 36px rgba(42,160,255,0.12)}
+
+    /* Viewport */
+    main.viewport{
+      position:fixed;left:0;right:0;top:86px;bottom:0;overflow:hidden;padding:28px 5%;
+      z-index:20;display:flex;align-items:center;justify-content:center;
+    }
+
+    /* Panels container */
+    .panels{ width:1200px;max-width:calc(100% - 80px);height:calc(100% - 120px);
+      position:relative; overflow:visible; display:flex;align-items:center;justify-content:center;
+    }
+
+    /* Panel base */
+    .panel{
+      position:absolute;inset:0;margin:auto;width:100%;height:100%;max-height:980px;
+      display:grid;grid-template-columns: 1fr 480px;gap:36px;align-items:center;padding:48px;border-radius:20px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.006));
+      border: 1px solid rgba(255,255,255,0.03); box-shadow: var(--soft-shadow);
+      transform: translateX(140%) scale(.98); opacity:0;
+      transition: transform .8s cubic-bezier(.2,.9,.25,1), opacity .5s;
+      will-change: transform, opacity; overflow: hidden;
+    }
+    .panel.active{transform: translateX(0) scale(1);opacity:1;z-index:30}
+
+    /* Panel inner content */
+    .content{ padding-right:6%; max-width:920px; }
+    .panel-title{font-size:40px;color:var(--accent-1);margin:0 0 10px 0;letter-spacing:.4px}
+    .lead{font-size:18px;color:var(--muted);line-height:1.6;margin-bottom:18px}
+    .card-blurb{ background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.008)); padding:18px;border-radius:14px;border:1px solid var(--card-border); }
+    .facts{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:18px}
+    .fact{background:rgba(255,255,255,0.02);padding:10px;border-radius:10px;font-weight:600;color:var(--muted);font-size:13px}
+
+    /* Right column - vector illustration + mini-card */
+    .media{ display:flex;flex-direction:column;align-items:center;gap:18px;justify-content:center;padding-left:6%; }
+    .illustration-wrap{ width:100%;max-width:460px;height:420px;border-radius:16px; display:flex;align-items:center;justify-content:center;
+      background:linear-gradient(180deg, rgba(0,0,0,0.18), rgba(0,0,0,0.12)); border:1px solid rgba(255,255,255,0.03);
+      box-shadow: 0 18px 50px rgba(0,0,0,0.6); overflow:hidden;position:relative;
+    }
+    .illustration{ width:90%;height:90%; display:block; transform-origin:center; transition: transform .8s cubic-bezier(.2,.9,.25,1), filter .6s; filter: drop-shadow(0 12px 40px rgba(42,160,255,0.08)); }
+    .illustration-wrap:hover .illustration{ transform: scale(1.03) rotate(-3deg) }
+    .meta-card{ width:100%;padding:12px;border-radius:12px;background:rgba(255,255,255,0.02); border:1px solid var(--card-border);display:flex;gap:12px;align-items:center; }
+    .meta-card .dot{width:14px;height:14px;border-radius:50%;background:var(--accent-1)}
+    .meta-card p{margin:0;font-size:13px;color:var(--muted)}
+
+    /* Side progress */
+    .side-progress{ position:fixed;right:22px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:12px;z-index:40; }
+    .dot-btn{width:14px;height:14px;border-radius:50%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.03);cursor:pointer}
+    .dot-btn.active{background:linear-gradient(180deg,var(--accent-1),var(--accent-2));box-shadow:0 10px 26px rgba(42,160,255,0.18);transform:scale(1.25)}
+
+    /* Responsive */
+    @media (max-width:1100px){
+      .panels{max-width:calc(100% - 60px)} .panel{grid-template-columns: 1fr 380px;padding:32px} .illustration-wrap{height:360px}
+    }
+    @media (max-width:900px){
+      main.viewport{padding:18px} .panel{grid-template-columns:1fr;padding:22px;border-radius:14px} .illustration-wrap{max-width:100%;height:320px}
+    }
+    @media (max-width:640px){
+      .panel{grid-template-columns:1fr;gap:18px;padding:18px;align-items:flex-start} .media{order:-1;padding-left:0} .illustration-wrap{height:260px} .panel-title{font-size:28px}
+    }
+
+    /* staging reveals */
+    .stagger{opacity:0;transform:translateY(8px);transition: all .6s cubic-bezier(.2,.9,.25,1)}
+    .stagger.show{opacity:1;transform:none}
+  </style>
+</head>
+<body>
+  <!-- Partículas (canvas) -->
+  <canvas id="particle-canvas" style="position:fixed;inset:0;z-index:5;pointer-events:none"></canvas>
+
+  <header class="app-header" role="banner">
+    <div class="brand" aria-hidden="false">
+      <div class="neptune-emblem" aria-hidden="true">
+        <!-- subtle ring -->
+        <svg width="40" height="40" viewBox="0 0 40 40" aria-hidden="true">
+          <defs>
+            <linearGradient id="ring" x1="0" x2="1">
+              <stop offset="0%" stop-color="#c8f6ff" stop-opacity="0.9"/>
+              <stop offset="100%" stop-color="#3fc2ff" stop-opacity="0.5"/>
+            </linearGradient>
+          </defs>
+          <circle cx="20" cy="20" r="12" fill="url(#ring)" opacity="0.18"/>
+        </svg>
+      </div>
+      <div>
+        <h1>NEPTUNO</h1>
+        <p>Explorador vectorial — interactivo</p>
+      </div>
+    </div>
+
+    <nav class="top-nav" role="navigation" aria-label="Navegación principal">
+      <button class="nav-btn active" data-target="0" aria-pressed="true" title="Composición y estructura">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2"/></svg>
+        Composición
+      </button>
+
+      <button class="nav-btn" data-target="1" title="Atmósfera">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 15s4-4 9-4 9 4 9 4"/><path d="M5 11s2-3 7-3 7 3 7 3"/></svg>
+        Atmósfera
+      </button>
+
+      <button class="nav-btn" data-target="2" title="Movimiento y órbita">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><path d="M12 4v4l2 2"/></svg>
+        Movimiento
+      </button>
+
+      <button class="nav-btn" data-target="3" title="Curiosidades e influencia">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l2 5h5l-4 3 1 6-5-3-5 3 1-6-4-3h5z"/></svg>
+        Curiosidades
+      </button>
+    </nav>
+  </header>
+
+  <main class="viewport" role="main">
+    <div class="panels">
+
+      <!-- PANEL 0: Composición y estructura -->
+      <section class="panel active" data-index="0" id="panel-0" aria-labelledby="title-0" role="region">
+        <div class="content">
+          <h2 id="title-0" class="panel-title stagger show">Composición y estructura</h2>
+          <p class="lead stagger show" style="transition-delay:.05s">
+            Neptuno es un gigante helado: un núcleo rocoso rodeado por una capa espesa de hielo (agua, amoníaco y metano) y una envoltura gaseosa exterior.
+          </p>
+
+          <div class="card-blurb stagger show" style="transition-delay:.12s">
+            <strong>Núcleo:</strong> probablemente rocoso y relativamente denso.<br>
+            <strong>Interior 'helado':</strong> mezcla densa de agua/amoniaco/metano que forma gran parte de la masa.<br>
+            <strong>Envoltura:</strong> hidrógeno/helio con metano en las capas superiores que le dan su color.
+          </div>
+
+          <div class="facts stagger show" style="transition-delay:.20s">
+            <div class="fact"><strong>Tipo:</strong> Gigante helado</div>
+            <div class="fact"><strong>Composición:</strong> H, He + hielos (H₂O, NH₃, CH₄)</div>
+            <div class="fact"><strong>Temp. atmósfera:</strong> ~-224 °C</div>
+            <div class="fact"><strong>Diámetro:</strong> ~49,244 km</div>
+          </div>
+        </div>
+
+        <aside class="media">
+          <div class="illustration-wrap" aria-hidden="false">
+            <!-- Inline SVG: schematic layers of Neptune -->
+            <svg class="illustration" viewBox="0 0 800 720" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Esquema vectorial de Neptuno">
+              <defs>
+                <radialGradient id="n_core" cx="40%" cy="50%">
+                  <stop offset="0%" stop-color="#e8fbff"/>
+                  <stop offset="40%" stop-color="#87e6ff"/>
+                  <stop offset="80%" stop-color="#2fb8ff"/>
+                  <stop offset="100%" stop-color="#075ea8"/>
+                </radialGradient>
+                <filter id="glowN" x="-50%" y="-50%" width="200%" height="200%">
+                  <feGaussianBlur stdDeviation="10" result="blur"/>
+                  <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+                </filter>
+              </defs>
+
+              <rect width="100%" height="100%" fill="transparent"/>
+              <g transform="translate(400,360)">
+                <!-- outer faint corona -->
+                <circle r="260" fill="url(#n_core)" opacity="0.06"/>
+                <!-- rings of layers -->
+                <circle r="200" fill="none" stroke="#6fdcff" stroke-width="3" opacity="0.10"/>
+                <circle r="140" fill="none" stroke="#49cfff" stroke-width="3" opacity="0.12"/>
+                <circle r="80" fill="none" stroke="#1fa8ff" stroke-width="3" opacity="0.14"/>
+                <!-- core -->
+                <circle r="44" fill="url(#n_core)" filter="url(#glowN)"/>
+                <!-- labels -->
+                <g transform="translate(-220,-120)" fill="#eaf6ff" font-size="14" opacity="0.9">
+                  <text x="0" y="0">Núcleo</text>
+                </g>
+                <g transform="translate(-120,-20)" fill="#eaf6ff" font-size="13" opacity="0.9">
+                  <text x="0" y="0">Interior (hielos)</text>
+                </g>
+                <g transform="translate(-60,100)" fill="#eaf6ff" font-size="13" opacity="0.9">
+                  <text x="0" y="0">Envoltura gaseosa</text>
+                </g>
+              </g>
+            </svg>
+          </div>
+
+          <div class="meta-card">
+            <div style="flex:1">
+              <div style="font-weight:800">Resumen rápido</div>
+              <p style="margin:6px 0 0 0;color:var(--muted);font-size:13px">Estructura estratificada: núcleo rocoso, capa "helada" y atmósfera superior responsable del tono azul.</p>
+            </div>
+            <div class="dot" aria-hidden="true"></div>
+          </div>
+        </aside>
+      </section>
+
+      <!-- PANEL 1: Atmósfera -->
+      <section class="panel" data-index="1" id="panel-1" aria-labelledby="title-1" role="region">
+        <div class="content">
+          <h2 id="title-1" class="panel-title stagger">Atmósfera</h2>
+          <p class="lead stagger" style="transition-delay:.05s">
+            La atmósfera de Neptuno contiene hidrógeno, helio y metano; el metano absorbe el rojo y muestra tonos azul-verdosos. Es extremadamente fría.
+          </p>
+
+          <div class="card-blurb stagger" style="transition-delay:.12s">
+            Las capas superiores presentan nubes y tormentas: Neptuno tiene vientos extraordinarios y sistemas atmosféricos de gran escala.
+          </div>
+
+          <div class="facts stagger" style="transition-delay:.20s">
+            <div class="fact"><strong>Componentes:</strong> H₂, He, CH₄</div>
+            <div class="fact"><strong>Color:</strong> azul verdoso por metano</div>
+            <div class="fact"><strong>Vientos:</strong> hasta >2.000 km/h</div>
+            <div class="fact"><strong>Temp. media:</strong> ~-224 °C</div>
+          </div>
+        </div>
+
+        <aside class="media">
+          <div class="illustration-wrap">
+            <!-- Inline SVG: stylized atmosphere and winds -->
+            <svg class="illustration" viewBox="0 0 800 600" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Ilustración atmosférica de Neptuno">
+              <defs>
+                <linearGradient id="windg" x1="0" x2="1">
+                  <stop offset="0%" stop-color="#dff9ff" stop-opacity="0.95"/>
+                  <stop offset="100%" stop-color="#7fdcff" stop-opacity="0.6"/>
+                </linearGradient>
+              </defs>
+
+              <rect width="100%" height="100%" fill="transparent"/>
+              <!-- planet disc -->
+              <g transform="translate(400,320)">
+                <circle r="120" fill="#2ea8ff" stroke="#0b5f96" stroke-width="6"/>
+                <!-- subtle cloud bands -->
+                <path d="M-120,-20 C-80,-40 80,-40 120,-20" fill="none" stroke="#7fdcff" stroke-width="8" opacity="0.28" stroke-linecap="round"/>
+                <path d="M-120,10 C-80,-10 80,-10 120,10" fill="none" stroke="#9fe8ff" stroke-width="6" opacity="0.22" stroke-linecap="round"/>
+              </g>
+
+              <!-- stylized fast wind streaks -->
+              <g stroke="url(#windg)" stroke-width="6" stroke-linecap="round" opacity="0.95" fill="none">
+                <path d="M80,120 C160,40 480,40 600,120"><animate attributeName="d" dur="6s" repeatCount="indefinite" values="M80,120 C160,40 480,40 600,120; M80,120 C160,-10 480,80 600,120; M80,120 C160,40 480,40 600,120"/></path>
+                <path d="M40,160 C140,80 460,80 560,160"><animate attributeName="d" dur="5.2s" repeatCount="indefinite" values="M40,160 C140,80 460,80 560,160; M40,160 C140,40 460,120 560,160; M40,160 C140,80 460,80 560,160"/></path>
+              </g>
+
+            </svg>
+          </div>
+
+          <div class="meta-card">
+            <div style="flex:1">
+              <div style="font-weight:800">Dato</div>
+              <p style="margin:6px 0 0 0;color:var(--muted);font-size:13px">Aún con baja temperatura, la atmósfera genera algunas de las corrientes más rápidas del Sistema Solar.</p>
+            </div>
+            <div class="dot" aria-hidden="true"></div>
+          </div>
+        </aside>
+      </section>
+
+      <!-- PANEL 2: Movimiento y órbita -->
+      <section class="panel" data-index="2" id="panel-2" aria-labelledby="title-2" role="region">
+        <div class="content">
+          <h2 id="title-2" class="panel-title stagger">Movimiento y órbita</h2>
+          <p class="lead stagger" style="transition-delay:.05s">
+            Neptuno tarda 165 años terrestres en orbitar el Sol. Su día dura alrededor de 16 horas; es el planeta más lejano del Sol en nuestro sistema.
+          </p>
+
+          <div class="card-blurb stagger" style="transition-delay:.12s">
+            Su órbita es amplia y lenta; a esa distancia la luz y la energía solar son muy débiles comparadas con la Tierra.
+          </div>
+
+          <div class="facts stagger" style="transition-delay:.20s">
+            <div class="fact"><strong>Año:</strong> ~165 años terrestres</div>
+            <div class="fact"><strong>Rotación:</strong> ~16 horas</div>
+            <div class="fact"><strong>Distancia media:</strong> ~30 AU</div>
+            <div class="fact"><strong>Posición:</strong> más lejano del Sol</div>
+          </div>
+        </div>
+
+        <aside class="media">
+          <div class="illustration-wrap">
+            <!-- Inline SVG: orbit and rotation stylized -->
+            <svg class="illustration" viewBox="0 0 800 600" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Ilustración orbital de Neptuno">
+              <rect width="100%" height="100%" fill="transparent"/>
+              <g transform="translate(120,300)">
+                <!-- Sun (small faint) -->
+                <circle cx="0" cy="0" r="16" fill="#ffd9a6" opacity="0.9" />
+                <text x="-14" y="36" fill="#f7f7f7" font-size="12" opacity="0.7">Sol</text>
+              </g>
+
+              <g transform="translate(400,300)">
+                <!-- orbit ellipse -->
+                <ellipse rx="260" ry="120" fill="none" stroke="#4fc7ff" stroke-width="2" opacity="0.14"/>
+                <!-- Neptune marker moving on ellipse (animated) -->
+                <g>
+                  <circle cx="260" cy="0" r="34" fill="#2ea8ff" stroke="#063b71" stroke-width="4"/>
+                  <text x="232" y="64" font-size="12" fill="#eaf6ff" opacity="0.9">Neptuno</text>
+                </g>
+                <!-- small rotation indicator -->
+                <g transform="translate(-40,-120)">
+                  <path d="M-10,30 a30,10 0 1,0 60,0" stroke="#9fe8ff" stroke-width="2" fill="none" opacity="0.7"/>
+                  <text x="-36" y="46" font-size="11" fill="#eaf6ff" opacity="0.8">Rotación ≈ 16 h</text>
+                </g>
+              </g>
+            </svg>
+          </div>
+
+          <div class="meta-card">
+            <div style="flex:1">
+              <div style="font-weight:800">Contexto</div>
+              <p style="margin:6px 0 0 0;color:var(--muted);font-size:13px">La gran distancia al Sol produce condiciones muy frías y largos periodos orbitales.</p>
+            </div>
+            <div class="dot" aria-hidden="true"></div>
+          </div>
+        </aside>
+      </section>
+
+      <!-- PANEL 3: Curiosidades e influencia -->
+      <section class="panel" data-index="3" id="panel-3" aria-labelledby="title-3" role="region">
+        <div class="content">
+          <h2 id="title-3" class="panel-title stagger">Curiosidades e influencia</h2>
+          <p class="lead stagger" style="transition-delay:.05s">
+            Neptuno alberga tormentas masivas (como la Gran Mancha Oscura), tiene lunas notables como Tritón y fue predicho matemáticamente antes de ser observado.
+          </p>
+
+          <div class="card-blurb stagger" style="transition-delay:.12s">
+            Tritón es curioso por su órbita retrógrada; Neptuno es uno de los mundos menos visitados por sondas, con Voyager 2 como la principal visita en 1989.
+          </div>
+
+          <div class="facts stagger" style="transition-delay:.20s">
+            <div class="fact"><strong>Lunas:</strong> ≥14 (Tritón destacado)</div>
+            <div class="fact"><strong>Tormentas:</strong> vientos más rápidos del sistema</div>
+            <div class="fact"><strong>Descubrimiento:</strong> predicho por cálculos (1846)</div>
+            <div class="fact"><strong>Exploración:</strong> Voyager 2 (1989)</div>
+          </div>
+        </div>
+
+        <aside class="media">
+          <div class="illustration-wrap">
+            <!-- Inline SVG: Triton + storm + discovery iconography -->
+            <svg class="illustration" viewBox="0 0 800 600" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Ilustración de curiosidades de Neptuno">
+              <rect width="100%" height="100%" fill="transparent"/>
+              <!-- Neptune -->
+              <g transform="translate(220,300)">
+                <circle r="80" fill="#2ea8ff" stroke="#063b71" stroke-width="4"/>
+                <text x="-36" y="106" font-size="12" fill="#eaf6ff" opacity="0.9">Neptuno</text>
+              </g>
+              <!-- Triton -->
+              <g transform="translate(420,240)">
+                <circle r="18" fill="#f1f6fa" stroke="#c1d8e8" stroke-width="2"/>
+                <text x="-18" y="46" font-size="11" fill="#eaf6ff" opacity="0.9">Tritón (retrógrado)</text>
+              </g>
+
+              <!-- storm swirl -->
+              <g transform="translate(320,360)" fill="none" stroke="#afefff" stroke-width="3" opacity="0.9">
+                <path d="M0,0 C20,-30 60,-30 80,0 C60,20 20,20 0,0" stroke-linecap="round" stroke-linejoin="round"/>
+                <circle cx="40" cy="-4" r="6" fill="#cfffff" stroke="none"/>
+              </g>
+
+              <!-- historic discovery badge -->
+              <g transform="translate(580,420)">
+                <rect x="-64" y="-36" width="128" height="72" rx="10" fill="rgba(255,255,255,0.02)" stroke="#7fdcff" stroke-width="1.6"/>
+                <text x="-50" y="-4" font-size="12" fill="#eaf6ff">Predicho por</text>
+                <text x="-50" y="14" font-size="12" fill="#9fe8ff">Cálculos (1846)</text>
+              </g>
+            </svg>
+          </div>
+
+          <div class="meta-card">
+            <div style="flex:1">
+              <div style="font-weight:800">Nota</div>
+              <p style="margin:6px 0 0 0;color:var(--muted);font-size:13px">Neptuno nos recuerda lo que la teoría matemática y la observación combinada pueden lograr.</p>
+            </div>
+            <div class="dot" aria-hidden="true"></div>
+          </div>
+        </aside>
+      </section>
+
+    </div>
+  </main>
+
+  <!-- side progress -->
+  <div class="side-progress" aria-hidden="false">
+    <div class="dot-btn active" data-target="0" title="Composición"></div>
+    <div class="dot-btn" data-target="1" title="Atmósfera"></div>
+    <div class="dot-btn" data-target="2" title="Movimiento"></div>
+    <div class="dot-btn" data-target="3" title="Curiosidades"></div>
+  </div>
+
+  <script>
+    /* --------------------------- Partículas sutiles - Canvas --------------------------- */
+    (function particles(){
+      const canvas = document.getElementById('particle-canvas');
+      const ctx = canvas.getContext('2d');
+      let w = canvas.width = innerWidth, h = canvas.height = innerHeight;
+      window.addEventListener('resize', ()=>{ w=canvas.width=innerWidth; h=canvas.height=innerHeight; });
+      const N = Math.round((w*h)/90000);
+      const parts = Array.from({length: Math.max(60, N)}, ()=>({
+        x: Math.random()*w, y: Math.random()*h,
+        r: Math.random()*1.6 + 0.3,
+        vx: (Math.random()-0.5)*0.12, vy: (Math.random()-0.5)*0.12,
+        alpha: Math.random()*0.5 + 0.12
+      }));
+      function step(){
+        ctx.clearRect(0,0,w,h);
+        for(const p of parts){
+          p.x += p.vx; p.y += p.vy;
+          if(p.x < -10) p.x = w + 10; if(p.x > w + 10) p.x = -10;
+          if(p.y < -10) p.y = h + 10; if(p.y > h + 10) p.y = -10;
+          ctx.beginPath();
+          ctx.fillStyle = 'rgba(160,230,255,'+ (p.alpha*0.9) +')';
+          ctx.arc(p.x,p.y,p.r,0,Math.PI*2); ctx.fill();
+        }
+        requestAnimationFrame(step);
+      }
+      step();
+    })();
+
+    /* --------------------------- Navigation logic (panels) --------------------------- */
+    const panels = Array.from(document.querySelectorAll('.panel'));
+    const navBtns = Array.from(document.querySelectorAll('.nav-btn'));
+    const dots = Array.from(document.querySelectorAll('.dot-btn'));
+    let current = 0;
+    const STAGGER_DELAY = 90;
+
+    function setActive(index){
+      if(index === current) return;
+      index = Math.max(0, Math.min(panels.length-1, index));
+      const prev = current, next = index;
+
+      panels[prev].classList.remove('active');
+      navBtns[prev].classList.remove('active');
+      navBtns[prev].setAttribute('aria-pressed','false');
+      dots[prev].classList.remove('active');
+
+      panels[next].classList.add('active');
+      navBtns[next].classList.add('active');
+      navBtns[next].setAttribute('aria-pressed','true');
+      dots[next].classList.add('active');
+
+      revealStagger(panels[next]);
+      current = next;
+      history.replaceState(null, '', '#p' + next);
+    }
+
+    function revealStagger(panelEl){
+      const items = panelEl.querySelectorAll('.stagger');
+      items.forEach((it, i) => {
+        it.classList.remove('show');
+        setTimeout(()=> it.classList.add('show'), i * STAGGER_DELAY + 90);
+      });
+    }
+
+    navBtns.forEach(b => b.addEventListener('click', ()=> {
+      const target = Number(b.dataset.target);
+      setActive(target);
+    }));
+
+    dots.forEach(d => d.addEventListener('click', ()=> {
+      const target = Number(d.dataset.target);
+      setActive(target);
+    }));
+
+    window.addEventListener('keydown', e => {
+      if(e.key === 'ArrowRight'){ if(current < panels.length-1) setActive(current+1); }
+      if(e.key === 'ArrowLeft'){ if(current > 0) setActive(current-1); }
+    });
+
+    (function swipe(){
+      let sx=0, sy=0;
+      window.addEventListener('touchstart', e => { sx = e.touches[0].clientX; sy = e.touches[0].clientY; }, {passive:true});
+      window.addEventListener('touchend', e => {
+        const ex = e.changedTouches[0].clientX; const dx = ex - sx;
+        if(Math.abs(dx) > 50){
+          if(dx < 0 && current < panels.length-1) setActive(current+1);
+          if(dx > 0 && current > 0) setActive(current-1);
+        }
+      }, {passive:true});
+    })();
+
+    document.addEventListener('DOMContentLoaded', ()=> {
+      revealStagger(panels[0]);
+      const hash = window.location.hash;
+      if(hash && hash.startsWith('#p')){
+        const idx = parseInt(hash.slice(2));
+        if(!isNaN(idx) && idx >= 0 && idx < panels.length) setActive(idx);
+      }
+    });
+  </script>
+</body>
+</html>
