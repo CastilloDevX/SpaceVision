@@ -1,4 +1,4 @@
-# Space Vision - Interactive Solar Explorer
+  # Space Vision - Interactive Solar Explorer
 > This proyect is for Challenge of NASA Space Apps: Embiggen Your Eyes!
 
 **Creators**
@@ -13,9 +13,9 @@
 
 The project presents an interactive model where users can explore the composition of the Sun, its energy source, its influence on Earth, and its solar cycle. Through an intuitive and visually appealing interface, students can better understand how our star works and how it impacts life on Earth.
 
-## Link to the Challenge
+## Link to our project
 
-This project is part of a challenge hosted on the [Render](https://spacevision.onrender.com) platform, an environment for creating and deploying applications. The challenge seeks an interactive way to explore advanced astronomical concepts and provide an engaging learning resource.
+This project is part of a challenge hosted on the [Render](https://spacevision.onrender.com) platform, an environment for creating and deploying applications. The challenge seeks an interactive way to explore advanced astronomical concepts and provide an engaging learning resource. Check details [here](https://www.spaceappschallenge.org/2025/challenges/embiggen-your-eyes/)
 
 ## Project Objectives
 
