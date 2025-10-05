@@ -9,6 +9,7 @@
   <script src="https://cdn.babylonjs.com/loaders/babylon.glTF2FileLoader.js"></script>
 
   <link rel="stylesheet" href="{{ url_for('static', filename='css/index.css') }}">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;800&display=swap" rel="stylesheet">
 
   <style>
     html, body { margin:0; padding:0; width:100%; height:100%; overflow:hidden; }
@@ -16,7 +17,7 @@
     #name {
       position:absolute; top:12px; left:0; right:0; text-align:center;
       color:#fff; font:600 18px system-ui, sans-serif; text-shadow:0 0 8px #09f;
-      pointer-events:none;
+      pointer-events:none; font-size: 2rem;
     }
     /* Botones de navegación */
     .nav-controls {
@@ -24,7 +25,7 @@
       display: flex; flex-direction: column; gap: 10px; z-index: 10;
     }
     .nav-btn {
-      width: 44px; height: 44px; border-radius: 999px; border: 1px solid #2a2a2a;
+      width: 5rem; height: 5rem; border-radius: 999px; border: 1px solid #2a2a2a;
       background: rgba(20,20,20,.7); color:#fff; font: 700 18px/1 system-ui, sans-serif;
       display: grid; place-items: center; cursor: pointer; user-select: none;
       box-shadow: 0 4px 18px rgba(0,0,0,.35);

@@ -1,627 +1,658 @@
-```html
 <!DOCTYPE html>
-<html lang="es">
-<head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1.0" />
-<title>El Sol — Explorador Vectorial</title>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width,initial-scale=1,viewport-fit=cover"
+    />
+    <title>The Sun — Vector Explorer</title>
 
-<!-- Fuente -->
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;800&display=swap"
+      rel="stylesheet"
+    />
 
-<style>
-  :root{
-    --bg1: #040416;
-    --bg2: #0b1230;
-    --accent-1: #ffd05a;
-    --accent-2: #ff6a00;
-    --glass: rgba(255,255,255,0.04);
-    --card-border: rgba(255,200,80,0.09);
-    --text: #f7f6f2;
-    --muted: rgba(247,246,242,0.75);
-    --soft-shadow: 0 12px 40px rgba(0,0,0,0.6);
-    --radius: 18px;
-  }
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/info.css') }}"
+    />
+  </head>
+  <body>
+    <canvas id="particle-canvas" aria-hidden="true"></canvas>
 
-  /* Reset */
-  *{box-sizing:border-box}
-  html,body{height:100%}
-  body{
-    margin:0;
-    font-family:"Poppins",system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial;
-    color:var(--text);
-    background:
-      radial-gradient(1000px 500px at 10% 10%, rgba(255,110,40,0.04), transparent 8%),
-      radial-gradient(800px 400px at 90% 90%, rgba(255,200,90,0.02), transparent 6%),
-      linear-gradient(180deg,var(--bg1),var(--bg2) 60%, #000 100%);
-    -webkit-font-smoothing:antialiased;
-    -moz-osx-font-smoothing:grayscale;
-    overflow:hidden;
-  }
+    <header class="app-header" role="banner">
+      <div class="brand">
+        <div class="sun-emblem" aria-hidden="true"></div>
+        <div>
+          <h1>THE SUN</h1>
+          <p>Interactive vector explorer</p>
+        </div>
+      </div>
 
-  /* Top header */
-  header.app-header{
-    position:fixed;left:0;right:0;top:0;height:86px;
-    display:flex;align-items:center;justify-content:space-between;
-    padding:14px 28px;gap:18px;z-index:60;
-    background:linear-gradient(180deg, rgba(0,0,0,0.12), rgba(0,0,0,0.06));
-    border-bottom:1px solid rgba(255,255,255,0.03);
-    backdrop-filter: blur(6px);
-  }
+      <nav class="top-nav" role="navigation" aria-label="Main navigation">
+        <button
+          class="nav-btn active"
+          data-target="0"
+          aria-pressed="true"
+          title="Composition & structure"
+          aria-label="Structure"
+        >
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.6"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M12 2L2 7l10 5 10-5-10-5z" />
+            <path d="M2 17l10 5 10-5" />
+            <path d="M2 12l10 5 10-5" />
+          </svg>
+          <span class="label">Structure</span>
+        </button>
 
-  .brand{display:flex;align-items:center;gap:16px}
-  .sun-emblem{
-    width:64px;height:64px;border-radius:50%;
-    background: radial-gradient(circle at 30% 25%, #fff7d6 0%, #ffd86b 9%, #ff9b2d 45%, #ff5a00 75%);
-    box-shadow: 0 12px 40px rgba(255,120,0,0.16), inset 0 -6px 18px rgba(0,0,0,0.08);
-    display:flex;align-items:center;justify-content:center;
-    transform-origin:center;
-    animation: slowSpin 18s linear infinite;
-    border:1px solid rgba(255,255,255,0.04);
-  }
-  @keyframes slowSpin{to{transform:rotate(360deg)}}
+        <button
+          class="nav-btn"
+          data-target="1"
+          title="Energy source"
+          aria-label="Energy"
+        >
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.6"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M8.5 20a6.5 6.5 0 0 0 7-10" />
+          </svg>
+          <span class="label">Energy</span>
+        </button>
 
-  .brand h1{font-size:18px;margin:0;font-weight:800;letter-spacing:.6px}
-  .brand p{margin:2px 0 0;font-size:12px;color:var(--muted)}
+        <button
+          class="nav-btn"
+          data-target="2"
+          title="Influence on Earth"
+          aria-label="Influence"
+        >
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.6"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <circle cx="12" cy="12" r="10" />
+            <path d="M2 12h20" />
+            <path d="M12 2c2.5 2.5 2.5 7 0 9.5C9.5 14 7 14 5.5 16" />
+          </svg>
+          <span class="label">Influence</span>
+        </button>
 
-  /* Top nav */
-  nav.top-nav{display:flex;gap:10px;align-items:center}
-  .nav-btn{
-    display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border-radius:999px;
-    background:transparent;border:1px solid rgba(255,255,255,0.03);
-    color:var(--text);font-weight:700;font-size:13px;cursor:pointer;
-    transition:transform .28s, box-shadow .28s, background .28s;
-    backdrop-filter: blur(6px);
-  }
-  .nav-btn svg{width:18px;height:18px;display:block}
-  .nav-btn:hover{transform:translateY(-6px) scale(1.03);box-shadow:0 12px 30px rgba(255,110,0,0.12)}
-  .nav-btn.active{background:linear-gradient(90deg, rgba(255,200,80,0.12), rgba(255,110,0,0.06));box-shadow:0 14px 36px rgba(255,120,0,0.14)}
+        <button
+          class="nav-btn"
+          data-target="3"
+          title="Solar cycle & future"
+          aria-label="Future"
+        >
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.6"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M3 12h3l3 8 4-16 2 6h4" />
+          </svg>
+          <span class="label">Future</span>
+        </button>
+      </nav>
+    </header>
 
-  /* Viewport */
-  main.viewport{
-    position:fixed;left:0;right:0;top:86px;bottom:0;overflow:hidden;padding:28px 5%;
-    z-index:20;display:flex;align-items:center;justify-content:center;
-  }
+    <main class="viewport" role="main">
+      <div class="panels">
+        <!-- PANEL 0 -->
+        <section
+          class="panel active"
+          data-index="0"
+          id="panel-0"
+          aria-labelledby="title-0"
+          role="region"
+        >
+          <div class="content">
+            <h2 id="title-0" class="panel-title stagger show">
+              Composition & structure
+            </h2>
+            <p class="lead stagger show" style="transition-delay: 0.05s">
+              The Sun is a G2V-type star composed mainly of hydrogen (~74%) and
+              helium (~24%). Its interior is stratified into the core,
+              radiative zone, and convective zone; its atmosphere includes the
+              photosphere, chromosphere, and corona.
+            </p>
+            <div
+              class="card-blurb stagger show"
+              style="transition-delay: 0.12s"
+            >
+              <strong>Core:</strong> where nuclear fusion occurs. <br />
+              <strong>Radiative zone:</strong> energy travels outward by
+              radiation over thousands of years. <br />
+              <strong>Convective zone:</strong> energy is transported by
+              convection up to the photosphere.
+            </div>
+            <div class="facts stagger show" style="transition-delay: 0.2s">
+              <div class="fact"><strong>Type:</strong> G2V</div>
+              <div class="fact"><strong>H/He:</strong> ~74% / 24%</div>
+              <div class="fact">
+                <strong>Core temperature:</strong> ~15 million °C
+              </div>
+              <div class="fact">
+                <strong>Diameter:</strong> ~1.39×10<sup>6</sup> km
+              </div>
+            </div>
+          </div>
 
-  /* Panels container */
-  .panels{
-    width:1200px;max-width:calc(100% - 80px);height:calc(100% - 120px);
-    position:relative;
-    overflow:visible;
-    display:flex;align-items:center;justify-content:center;
-  }
+          <aside class="media">
+            <div class="illustration-wrap" aria-hidden="false">
+              <!-- SVG 1 -->
+              <svg
+                class="illustration"
+                viewBox="0 0 800 720"
+                xmlns="http://www.w3.org/2000/svg"
+                role="img"
+                aria-label="Vector diagram of the Sun"
+              >
+                <defs>
+                  <radialGradient id="g_core" cx="40%" cy="45%">
+                    <stop offset="0%" stop-color="#fff9d6" />
+                    <stop offset="35%" stop-color="#ffd86b" />
+                    <stop offset="70%" stop-color="#ff9a2b" />
+                    <stop offset="100%" stop-color="#ff5a00" />
+                  </radialGradient>
+                  <filter
+                    id="glow"
+                    x="-50%"
+                    y="-50%"
+                    width="200%"
+                    height="200%"
+                  >
+                    <feGaussianBlur stdDeviation="12" result="blur" />
+                    <feMerge>
+                      <feMergeNode in="blur" />
+                      <feMergeNode in="SourceGraphic" />
+                    </feMerge>
+                  </filter>
+                </defs>
+                <rect x="0" y="0" width="800" height="720" fill="transparent" />
+                <g transform="translate(400,360)">
+                  <circle r="240" fill="url(#g_core)" opacity="0.08" />
+                  <path
+                    d="M-360,0 C-220,-170 -80,-210 0,-220 80,-210 220,-170 360,0 220,170 80,210 0,220 -80,210 -220,170 -360,0Z"
+                    fill="#ffb86b"
+                    opacity="0.06"
+                  />
+                  <circle
+                    r="200"
+                    fill="none"
+                    stroke="#ffd68a"
+                    stroke-width="3"
+                    opacity="0.12"
+                  />
+                  <circle
+                    r="150"
+                    fill="none"
+                    stroke="#ffc36a"
+                    stroke-width="2.6"
+                    opacity="0.12"
+                  />
+                  <circle
+                    r="95"
+                    fill="none"
+                    stroke="#ffac30"
+                    stroke-width="2.8"
+                    opacity="0.16"
+                  />
+                  <circle r="60" fill="url(#g_core)" filter="url(#glow)" />
+                  <g
+                    transform="translate(-220,-120)"
+                    fill="#fff"
+                    font-size="14"
+                    opacity="0.9"
+                  >
+                    <text x="0" y="0">Core</text>
+                  </g>
+                  <g
+                    transform="translate(-120,-40)"
+                    fill="#fff"
+                    font-size="13"
+                    opacity="0.9"
+                  >
+                    <text x="0" y="0">Radiative Zone</text>
+                  </g>
+                  <g
+                    transform="translate(-40,80)"
+                    fill="#fff"
+                    font-size="13"
+                    opacity="0.9"
+                  >
+                    <text x="0" y="0">Convective Zone</text>
+                  </g>
+                </g>
+              </svg>
+            </div>
+            <div class="meta-card">
+              <div style="flex: 1">
+                <div style="font-weight: 800">Quick summary</div>
+                <p
+                  style="
+                    margin: 6px 0 0 0;
+                    color: var(--muted);
+                    font-size: 13px;
+                  "
+                >
+                  Layered structure — each layer plays a key role in how energy
+                  is generated and transported.
+                </p>
+              </div>
+              <div class="dot" aria-hidden="true"></div>
+            </div>
+          </aside>
+        </section>
 
-  /* Panel base */
-  .panel{
-    position:absolute;inset:0;margin:auto;
-    width:100%;height:100%;max-height:980px;
-    display:grid;grid-template-columns: 1fr 480px;gap:36px;align-items:center;
-    padding:48px;border-radius:20px;
-    background: linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.006));
-    border: 1px solid rgba(255,255,255,0.03);
-    box-shadow: var(--soft-shadow);
-    transform: translateX(140%) scale(.98);
-    opacity:0;transition: transform .8s cubic-bezier(.2,.9,.25,1), opacity .5s;
-    will-change: transform, opacity;
-    overflow: hidden;
-  }
-  .panel.active{transform: translateX(0) scale(1);opacity:1;z-index:30}
+        <!-- PANEL 1 -->
+        <section
+          class="panel"
+          data-index="1"
+          id="panel-1"
+          aria-labelledby="title-1"
+          role="region"
+        >
+          <div class="content">
+            <h2 id="title-1" class="panel-title stagger">Energy source</h2>
+            <p class="lead stagger" style="transition-delay: 0.05s">
+              Nuclear fusion in the core converts hydrogen nuclei into helium —
+              the proton–proton chain — releasing energy that travels to the
+              surface as photons and heat.
+            </p>
+            <div class="card-blurb stagger" style="transition-delay: 0.12s">
+              Each reaction releases particles and photons; neutrinos escape
+              almost immediately — detecting them confirms the core reactions.
+            </div>
+            <div class="facts stagger" style="transition-delay: 0.2s">
+              <div class="fact">
+                <strong>Power:</strong> ~3.8×10<sup>26</sup> W
+              </div>
+              <div class="fact"><strong>Chain:</strong> proton–proton</div>
+              <div class="fact">
+                <strong>Neutrinos:</strong> detectable on Earth
+              </div>
+              <div class="fact">
+                <strong>Impact:</strong> sustains life (photosynthesis)
+              </div>
+            </div>
+          </div>
 
-  /* Panel inner content */
-  .content{
-    padding-right:6%;
-    max-width:920px;
-  }
-  .panel-title{font-size:40px;color:var(--accent-1);margin:0 0 10px 0;letter-spacing:.4px}
-  .lead{font-size:18px;color:var(--muted);line-height:1.6;margin-bottom:18px}
-  .card-blurb{
-    background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.008));
-    padding:18px;border-radius:14px;border:1px solid var(--card-border);
-  }
+          <aside class="media">
+            <div class="illustration-wrap">
+              <!-- SVG 2 -->
+              <svg
+                class="illustration"
+                viewBox="0 0 800 600"
+                xmlns="http://www.w3.org/2000/svg"
+                role="img"
+                aria-label="Vector illustration of nuclear fusion"
+              >
+                <defs>
+                  <radialGradient id="fusion" cx="50%" cy="40%">
+                    <stop offset="0%" stop-color="#fffef0" />
+                    <stop offset="45%" stop-color="#ffd86b" />
+                    <stop offset="100%" stop-color="#ff4f00" />
+                  </radialGradient>
+                </defs>
+                <rect width="100%" height="100%" fill="transparent" />
+                <g transform="translate(120,300)">
+                  <circle r="48" fill="#ffbfa0" opacity="0.95" />
+                  <text
+                    x="-10"
+                    y="8"
+                    font-size="18"
+                    font-weight="700"
+                    fill="#6b2b00"
+                  >
+                    p
+                  </text>
+                </g>
+                <g transform="translate(320,300)">
+                  <circle r="48" fill="#ffbfa0" opacity="0.95" />
+                  <text
+                    x="-10"
+                    y="8"
+                    font-size="18"
+                    font-weight="700"
+                    fill="#6b2b00"
+                  >
+                    p
+                  </text>
+                </g>
+                <g transform="translate(220,300)">
+                  <circle r="28" fill="url(#fusion)" opacity="0.95">
+                    <animate
+                      attributeName="r"
+                      values="20;28;22;28"
+                      dur="2.4s"
+                      repeatCount="indefinite"
+                    />
+                  </circle>
+                  <g transform="translate(160,-40)" fill="#fff" font-size="13">
+                    <text>Positron</text>
+                  </g>
+                </g>
+                <g stroke="#fff3d9" stroke-width="2" opacity="0.9">
+                  <path
+                    d="M520,160 C560,120 620,120 680,160"
+                    fill="none"
+                    stroke-linecap="round"
+                  >
+                    <animate
+                      attributeName="d"
+                      dur="6s"
+                      repeatCount="indefinite"
+                      values="M520,160 C560,120 620,120 680,160; M520,160 C560,80 620,200 680,160; M520,160 C560,120 620,120 680,160"
+                    />
+                  </path>
+                </g>
+              </svg>
+            </div>
+            <div class="meta-card">
+              <div style="flex: 1">
+                <div style="font-weight: 800">Fact</div>
+                <p
+                  style="
+                    margin: 6px 0 0 0;
+                    color: var(--muted);
+                    font-size: 13px;
+                  "
+                >
+                  Energy produced in seconds in the core takes thousands of
+                  years to reach the surface as light.
+                </p>
+              </div>
+              <div class="dot" aria-hidden="true"></div>
+            </div>
+          </aside>
+        </section>
 
-  .facts{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:18px}
-  .fact{background:rgba(255,255,255,0.02);padding:10px;border-radius:10px;font-weight:600;color:var(--muted);font-size:13px}
+        <!-- PANEL 2 -->
+        <section
+          class="panel"
+          data-index="2"
+          id="panel-2"
+          aria-labelledby="title-2"
+          role="region"
+        >
+          <div class="content">
+            <h2 id="title-2" class="panel-title stagger">
+              Influence on Earth
+            </h2>
+            <p class="lead stagger" style="transition-delay: 0.05s">
+              Solar radiation drives climate, day/night, and the seasons; magnetic
+              activity produces solar storms that affect satellites,
+              communications, and generate auroras.
+            </p>
+            <div class="card-blurb stagger" style="transition-delay: 0.12s">
+              Coronal mass ejections (CMEs) and energetic particles interact
+              with the magnetosphere, creating spectacular phenomena and
+              technological risks.
+            </div>
+            <div class="facts stagger" style="transition-delay: 0.2s">
+              <div class="fact">
+                <strong>Auroras:</strong> particle collisions with the atmosphere
+              </div>
+              <div class="fact">
+                <strong>Satellites:</strong> communications & atmospheric drag
+              </div>
+              <div class="fact">
+                <strong>Power grids:</strong> geomagnetically induced currents
+              </div>
+              <div class="fact">
+                <strong>Climate:</strong> the Sun as energy driver
+              </div>
+            </div>
+          </div>
 
-  /* Right column - vector illustration + mini-card */
-  .media{
-    display:flex;flex-direction:column;align-items:center;gap:18px;justify-content:center;padding-left:6%;
-  }
+          <aside class="media">
+            <div class="illustration-wrap">
+              <!-- SVG 3 -->
+              <svg
+                class="illustration"
+                viewBox="0 0 800 600"
+                xmlns="http://www.w3.org/2000/svg"
+                role="img"
+                aria-label="Vector illustration of Sun–Earth interaction"
+              >
+                <defs>
+                  <linearGradient id="wind" x1="0" x2="1">
+                    <stop offset="0%" stop-color="#fff2d9" stop-opacity="0.9" />
+                    <stop
+                      offset="100%"
+                      stop-color="#ffb37a"
+                      stop-opacity="0.2"
+                    />
+                  </linearGradient>
+                </defs>
+                <rect width="100%" height="100%" fill="transparent" />
+                <g transform="translate(220,300)">
+                  <circle
+                    r="68"
+                    fill="#2d9cff"
+                    stroke="#0b4b8a"
+                    stroke-width="6"
+                  />
+                  <path
+                    d="M-40,-10 C-10,-40 10,-40 40,-10"
+                    fill="#99ddff"
+                    opacity="0.6"
+                  />
+                </g>
+                <g stroke="#9be3ff" stroke-width="2" opacity="0.9" fill="none">
+                  <path
+                    d="M-90,300 C-120,160 -120,120 -60,80"
+                    transform="translate(360, -40)"
+                  />
+                  <path
+                    d="M-90,300 C-160,180 -160,120 -60,40"
+                    transform="translate(360, -40)"
+                  />
+                  <path
+                    d="M-90,300 C-200,200 -200,120 -60,-40"
+                    transform="translate(360, -40)"
+                  />
+                </g>
+                <g
+                  stroke="url(#wind)"
+                  stroke-width="12"
+                  stroke-linecap="round"
+                  opacity="0.22"
+                >
+                  <path d="M760,150 C640,220 540,260 420,300" />
+                  <animateTransform
+                    attributeName="transform"
+                    type="translate"
+                    values="0 0; -20 8; 0 0"
+                    dur="4s"
+                    repeatCount="indefinite"
+                  />
+                </g>
+              </svg>
+            </div>
+            <div class="meta-card">
+              <div style="flex: 1">
+                <div style="font-weight: 800">Caution</div>
+                <p
+                  style="
+                    margin: 6px 0 0 0;
+                    color: var(--muted);
+                    font-size: 13px;
+                  "
+                >
+                  Space agencies monitor space weather to protect critical
+                  infrastructure.
+                </p>
+              </div>
+              <div class="dot" aria-hidden="true"></div>
+            </div>
+          </aside>
+        </section>
 
-  .illustration-wrap{
-    width:100%;max-width:460px;height:420px;border-radius:16px;
-    display:flex;align-items:center;justify-content:center;
-    background:linear-gradient(180deg, rgba(0,0,0,0.18), rgba(0,0,0,0.12));
-    border:1px solid rgba(255,255,255,0.03);
-    box-shadow: 0 18px 50px rgba(0,0,0,0.6);
-    overflow:hidden;position:relative;
-  }
+        <!-- PANEL 3 -->
+        <section
+          class="panel"
+          data-index="3"
+          id="panel-3"
+          aria-labelledby="title-3"
+          role="region"
+        >
+          <div class="content">
+            <h2 id="title-3" class="panel-title stagger">
+              Solar cycle & future
+            </h2>
+            <p class="lead stagger" style="transition-delay: 0.05s">
+              The Sun has ~11-year activity cycles (spots, flares). We are
+              currently in Solar Cycle 25. In about ~5 billion years it will
+              become a red giant and eventually a white dwarf.
+            </p>
+            <div class="card-blurb stagger" style="transition-delay: 0.12s">
+              The cycle affects the number of sunspots and the frequency of
+              energetic events; its stellar fate is typical for stars of
+              similar mass.
+            </div>
+            <div class="facts stagger" style="transition-delay: 0.2s">
+              <div class="fact"><strong>Cycle:</strong> ~11 years</div>
+              <div class="fact"><strong>Age:</strong> ~4.6 billion years</div>
+              <div class="fact">
+                <strong>Future phases:</strong> red giant → white dwarf
+              </div>
+              <div class="fact">
+                <strong>Timescale:</strong> billions of years
+              </div>
+            </div>
+          </div>
 
-  /* SVG container scales nicely */
-  .illustration{
-    width:90%;height:90%;
-    display:block;
-    transform-origin:center;
-    transition: transform .8s cubic-bezier(.2,.9,.25,1), filter .6s;
-    filter: drop-shadow(0 12px 40px rgba(255,140,0,0.12));
-  }
-  .illustration-wrap:hover .illustration{ transform: scale(1.03) rotate(-3deg) }
+          <aside class="media">
+            <div class="illustration-wrap">
+              <!-- SVG 4 -->
+              <svg
+                class="illustration"
+                viewBox="0 0 800 600"
+                xmlns="http://www.w3.org/2000/svg"
+                role="img"
+                aria-label="Vector illustration of the Sun’s life cycle"
+              >
+                <rect width="100%" height="100%" fill="transparent" />
+                <g transform="translate(160,300)">
+                  <circle r="60" fill="#ffd86b" />
+                  <text x="-22" y="5" font-size="12" fill="#5a2500">
+                    Present
+                  </text>
+                </g>
+                <g transform="translate(400,300)">
+                  <ellipse rx="140" ry="110" fill="#ff9b2d" opacity="0.95" />
+                  <text x="-36" y="5" font-size="12" fill="#5a2500">
+                    Red giant
+                  </text>
+                </g>
+                <g transform="translate(640,300)">
+                  <circle
+                    r="28"
+                    fill="#f6f7ff"
+                    stroke="#c7d0ff"
+                    stroke-width="3"
+                  />
+                  <text x="-28" y="40" font-size="12" fill="#c7d0ff">
+                    White dwarf
+                  </text>
+                </g>
+                <g stroke="#fff4d9" stroke-width="2" fill="none" opacity="0.9">
+                  <path
+                    d="M220,300 C260,220 340,220 380,300"
+                    marker-end="url(#arr)"
+                  />
+                  <path
+                    d="M460,300 C520,380 600,380 640,300"
+                    marker-end="url(#arr)"
+                  />
+                </g>
+                <defs>
+                  <marker
+                    id="arr"
+                    markerWidth="8"
+                    markerHeight="8"
+                    refX="6"
+                    refY="3"
+                    orient="auto"
+                  >
+                    <path d="M0,0 L6,3 L0,6 z" fill="#fff4d9" />
+                  </marker>
+                </defs>
+              </svg>
+            </div>
+            <div class="meta-card">
+              <div style="flex: 1">
+                <div style="font-weight: 800">Perspective</div>
+                <p
+                  style="
+                    margin: 6px 0 0 0;
+                    color: var(--muted);
+                    font-size: 13px;
+                  "
+                >
+                  The processes span enormous time and energy scales — yet are
+                  highly predictable at large scales.
+                </p>
+              </div>
+              <div class="dot" aria-hidden="true"></div>
+            </div>
+          </aside>
+        </section>
+      </div>
+    </main>
 
-  .meta-card{
-    width:100%;padding:12px;border-radius:12px;background:rgba(255,255,255,0.02);
-    border:1px solid var(--card-border);display:flex;gap:12px;align-items:center;
-  }
-  .meta-card .dot{width:14px;height:14px;border-radius:50%;background:var(--accent-1)}
-  .meta-card p{margin:0;font-size:13px;color:var(--muted)}
-
-  /* Side progress */
-  .side-progress{
-    position:fixed;right:22px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:12px;z-index:40;
-  }
-  .dot-btn{width:14px;height:14px;border-radius:50%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.03);cursor:pointer}
-  .dot-btn.active{background:linear-gradient(180deg,var(--accent-1),var(--accent-2));box-shadow:0 10px 26px rgba(255,110,0,0.18);transform:scale(1.25)}
-
-  /* Responsive */
-  @media (max-width:1100px){
-    .panels{max-width:calc(100% - 60px)}
-    .panel{grid-template-columns: 1fr 380px;padding:32px}
-    .illustration-wrap{height:360px}
-  }
-  @media (max-width:900px){
-    main.viewport{padding:18px}
-    .panel{grid-template-columns:1fr;padding:22px;border-radius:14px}
-    .illustration-wrap{max-width:100%;height:320px}
-  }
-  @media (max-width:640px){
-    .panel{grid-template-columns:1fr;gap:18px;padding:18px;align-items:flex-start}
-    .media{order:-1;padding-left:0}
-    .illustration-wrap{height:260px}
-    .panel-title{font-size:28px}
-  }
-
-  /* staging reveals */
-  .stagger{opacity:0;transform:translateY(8px);transition: all .6s cubic-bezier(.2,.9,.25,1)}
-  .stagger.show{opacity:1;transform:none}
-</style>
-</head>
-<body>
-
-<!-- Partículas (canvas) -->
-<canvas id="particle-canvas" style="position:fixed;inset:0;z-index:5;pointer-events:none"></canvas>
-
-<header class="app-header" role="banner">
-  <div class="brand" aria-hidden="false">
-    <div class="sun-emblem" aria-hidden="true">
-      <!-- small animated corona ring (pure CSS) -->
+    <!-- side progress -->
+    <div class="side-progress" aria-label="Section progress">
+      <button
+        class="dot-btn active"
+        data-target="0"
+        title="Structure"
+        aria-label="Go to Structure"
+      ></button>
+      <button
+        class="dot-btn"
+        data-target="1"
+        title="Energy"
+        aria-label="Go to Energy"
+      ></button>
+      <button
+        class="dot-btn"
+        data-target="2"
+        title="Influence"
+        aria-label="Go to Influence"
+      ></button>
+      <button
+        class="dot-btn"
+        data-target="3"
+        title="Future"
+        aria-label="Go to Future"
+      ></button>
     </div>
-    <div>
-      <h1>EL SOL</h1>
-      <p>Explorador vectorial — interactivo</p>
-    </div>
-  </div>
 
-  <nav class="top-nav" role="navigation" aria-label="Navegación principal">
-    <button class="nav-btn active" data-target="0" aria-pressed="true" title="Composición y estructura">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
-      Estructura
-    </button>
-
-    <button class="nav-btn" data-target="1" title="Fuente de energía">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 20a6.5 6.5 0 0 0 7-10"/></svg>
-      Energía
-    </button>
-
-    <button class="nav-btn" data-target="2" title="Influencia sobre la Tierra">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2c2.5 2.5 2.5 7 0 9.5C9.5 14 7 14 5.5 16"/></svg>
-      Influencia
-    </button>
-
-    <button class="nav-btn" data-target="3" title="Ciclo solar y futuro">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h3l3 8 4-16 2 6h4"/></svg>
-      Futuro
-    </button>
-  </nav>
-</header>
-
-<main class="viewport" role="main">
-  <div class="panels">
-
-    <!-- PANEL 0: Composición y estructura -->
-    <section class="panel active" data-index="0" id="panel-0" aria-labelledby="title-0" role="region">
-      <div class="content">
-        <h2 id="title-0" class="panel-title stagger show">Composición y estructura</h2>
-        <p class="lead stagger show" style="transition-delay:.05s">El Sol es una estrella de tipo G2V, formada principalmente por hidrógeno (~74%) y helio (~24%). Su interior está estratificado: núcleo, zona radiativa y zona convectiva; su atmósfera incluye fotosfera, cromosfera y corona.</p>
-
-        <div class="card-blurb stagger show" style="transition-delay:.12s">
-          <strong>Núcleo:</strong> aquí ocurre la fusión nuclear. <br>
-          <strong>Zona radiativa:</strong> energía viaja por radiación durante miles de años. <br>
-          <strong>Zona convectiva:</strong> transporte por convección hasta la fotosfera.
-        </div>
-
-        <div class="facts stagger show" style="transition-delay:.20s">
-          <div class="fact"><strong>Tipo:</strong> G2V</div>
-          <div class="fact"><strong>H/He:</strong> ~74% / 24%</div>
-          <div class="fact"><strong>Temp. núcleo:</strong> ~15 millones °C</div>
-          <div class="fact"><strong>Diámetro:</strong> ~1.39×10<sup>6</sup> km</div>
-        </div>
-      </div>
-
-      <aside class="media">
-        <div class="illustration-wrap" aria-hidden="false">
-          <!-- Inline SVG vector: schematic layers of the Sun -->
-          <svg class="illustration" viewBox="0 0 800 720" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Esquema vectorial del Sol">
-            <defs>
-              <radialGradient id="g_core" cx="40%" cy="45%"><stop offset="0%" stop-color="#fff9d6"/><stop offset="35%" stop-color="#ffd86b"/><stop offset="70%" stop-color="#ff9a2b"/><stop offset="100%" stop-color="#ff5a00"/></radialGradient>
-              <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
-                <feGaussianBlur stdDeviation="12" result="blur"/>
-                <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-              </filter>
-            </defs>
-
-            <!-- background subtle -->
-            <rect x="0" y="0" width="800" height="720" fill="transparent"/>
-
-            <!-- Layers: corona -->
-            <g transform="translate(400,360)">
-              <circle r="240" fill="url(#g_core)" opacity="0.08" />
-              <g id="corona">
-                <path d="M-360,0 C-220,-170 -80,-210 0,-220 80,-210 220,-170 360,0 220,170 80,210 0,220 -80,210 -220,170 -360,0Z" fill="#ffb86b" opacity="0.06"/>
-              </g>
-
-              <!-- concentric rings -->
-              <circle r="200" fill="none" stroke="#ffd68a" stroke-width="3" opacity="0.12"/>
-              <circle r="150" fill="none" stroke="#ffc36a" stroke-width="2.6" opacity="0.12"/>
-              <circle r="95" fill="none" stroke="#ffac30" stroke-width="2.8" opacity="0.16"/>
-
-              <!-- core -->
-              <circle r="60" fill="url(#g_core)" filter="url(#glow)"/>
-              <!-- labels (decorative) -->
-              <g transform="translate(-220,-120)" fill="#fff" font-size="14" opacity="0.9">
-                <text x="0" y="0">Núcleo</text>
-              </g>
-              <g transform="translate(-120,-40)" fill="#fff" font-size="13" opacity="0.9">
-                <text x="0" y="0">Zona Radiativa</text>
-              </g>
-              <g transform="translate(-40,80)" fill="#fff" font-size="13" opacity="0.9">
-                <text x="0" y="0">Zona Convectiva</text>
-              </g>
-            </g>
-          </svg>
-        </div>
-
-        <div class="meta-card">
-          <div style="flex:1">
-            <div style="font-weight:800">Resumen rápido</div>
-            <p style="margin:6px 0 0 0;color:var(--muted);font-size:13px">Estructura por capas — cada capa tiene un papel clave en cómo se genera y transporta la energía.</p>
-          </div>
-          <div class="dot" aria-hidden="true"></div>
-        </div>
-      </aside>
-    </section>
-
-    <!-- PANEL 1: Fuente de energía -->
-    <section class="panel" data-index="1" id="panel-1" aria-labelledby="title-1" role="region">
-      <div class="content">
-        <h2 id="title-1" class="panel-title stagger">Fuente de energía</h2>
-        <p class="lead stagger" style="transition-delay:.05s">La fusión nuclear en el núcleo convierte núcleos de hidrógeno en helio — la cadena protón-protón — liberando energía que viaja hasta la superficie como fotones y calor.</p>
-
-        <div class="card-blurb stagger" style="transition-delay:.12s">
-          En cada reacción se liberan partículas y fotones; los neutrinos escapan casi inmediatamente — por eso detectarlos confirma las reacciones del núcleo.
-        </div>
-
-        <div class="facts stagger" style="transition-delay:.20s">
-          <div class="fact"><strong>Potencia:</strong> ~3.8×10<sup>26</sup> W</div>
-          <div class="fact"><strong>Cadena:</strong> protón-protón</div>
-          <div class="fact"><strong>Neutrinos:</strong> detectables en la Tierra</div>
-          <div class="fact"><strong>Impacto:</strong> sustento de la vida (fotosíntesis)</div>
-        </div>
-      </div>
-
-      <aside class="media">
-        <div class="illustration-wrap">
-          <!-- Inline SVG: stylized proton-proton fusion -->
-          <svg class="illustration" viewBox="0 0 800 600" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Ilustración vectorial de fusión nuclear">
-            <defs>
-              <radialGradient id="fusion" cx="50%" cy="40%"><stop offset="0%" stop-color="#fffef0"/><stop offset="45%" stop-color="#ffd86b"/><stop offset="100%" stop-color="#ff4f00"/></radialGradient>
-            </defs>
-            <rect width="100%" height="100%" fill="transparent"/>
-
-            <!-- proton pair -->
-            <g transform="translate(120,300)">
-              <circle r="48" fill="#ffbfa0" opacity="0.95"/>
-              <text x="-10" y="8" font-size="18" font-weight="700" fill="#6b2b00">p</text>
-            </g>
-            <g transform="translate(320,300)">
-              <circle r="48" fill="#ffbfa0" opacity="0.95"/>
-              <text x="-10" y="8" font-size="18" font-weight="700" fill="#6b2b00">p</text>
-            </g>
-
-            <!-- merging effect -->
-            <g transform="translate(220,300)">
-              <circle r="28" fill="url(#fusion)" opacity="0.95">
-                <animate attributeName="r" values="20;28;22;28" dur="2.4s" repeatCount="indefinite"/>
-              </circle>
-              <g transform="translate(160,-40)" fill="#fff" font-size="13">
-                <text>Positrón</text>
-              </g>
-            </g>
-
-            <!-- photons / energy -->
-            <g stroke="#fff3d9" stroke-width="2" opacity="0.9">
-              <path d="M520,160 C560,120 620,120 680,160" fill="none" stroke-linecap="round">
-                <animate attributeName="d" dur="6s" repeatCount="indefinite" values="M520,160 C560,120 620,120 680,160; M520,160 C560,80 620,200 680,160; M520,160 C560,120 620,120 680,160"/>
-              </path>
-            </g>
-          </svg>
-        </div>
-
-        <div class="meta-card">
-          <div style="flex:1">
-            <div style="font-weight:800">Dato</div>
-            <p style="margin:6px 0 0 0;color:var(--muted);font-size:13px">La energía generada en segundos en el núcleo tarda miles de años en llegar a la superficie como luz.</p>
-          </div>
-          <div class="dot" aria-hidden="true"></div>
-        </div>
-      </aside>
-    </section>
-
-    <!-- PANEL 2: Influencia sobre la Tierra -->
-    <section class="panel" data-index="2" id="panel-2" aria-labelledby="title-2" role="region">
-      <div class="content">
-        <h2 id="title-2" class="panel-title stagger">Influencia sobre la Tierra</h2>
-        <p class="lead stagger" style="transition-delay:.05s">La radiación solar determina el clima, el día/noche y las estaciones; además, la actividad magnética produce tormentas solares que afectan satélites, comunicaciones y generan auroras.</p>
-
-        <div class="card-blurb stagger" style="transition-delay:.12s">
-          Las eyecciones de masa coronal (CME) y las partículas energéticas interactúan con la magnetosfera, creando fenómenos espectaculares y riesgos tecnológicos.
-        </div>
-
-        <div class="facts stagger" style="transition-delay:.20s">
-          <div class="fact"><strong>Auroras:</strong> colisiones de partículas con la atmósfera</div>
-          <div class="fact"><strong>Satélites:</strong> comunicaciones y arrastre atmosférico</div>
-          <div class="fact"><strong>Redes eléctricas:</strong> corrientes inducidas</div>
-          <div class="fact"><strong>Clima:</strong> Sol como motor energético</div>
-        </div>
-      </div>
-
-      <aside class="media">
-        <div class="illustration-wrap">
-          <!-- Inline SVG: Earth + solar wind interaction -->
-          <svg class="illustration" viewBox="0 0 800 600" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Ilustración vectorial de interacción Sol-Tierra">
-            <defs>
-              <linearGradient id="wind" x1="0" x2="1">
-                <stop offset="0%" stop-color="#fff2d9" stop-opacity="0.9"/>
-                <stop offset="100%" stop-color="#ffb37a" stop-opacity="0.2"/>
-              </linearGradient>
-            </defs>
-            <rect width="100%" height="100%" fill="transparent"/>
-            <!-- stylized earth -->
-            <g transform="translate(220,300)">
-              <circle r="68" fill="#2d9cff" stroke="#0b4b8a" stroke-width="6"/>
-              <path d="M-40,-10 C-10,-40 10,-40 40,-10" fill="#99ddff" opacity="0.6"/>
-            </g>
-            <!-- magnetic field lines -->
-            <g stroke="#9be3ff" stroke-width="2" opacity="0.9" fill="none">
-              <path d="M-90,300 C-120,160 -120,120 -60,80" transform="translate(360, -40)"/>
-              <path d="M-90,300 C-160,180 -160,120 -60,40" transform="translate(360, -40)"/>
-              <path d="M-90,300 C-200,200 -200,120 -60,-40" transform="translate(360, -40)"/>
-            </g>
-            <!-- solar wind stream -->
-            <g stroke="url(#wind)" stroke-width="12" stroke-linecap="round" opacity="0.22">
-              <path d="M760,150 C640,220 540,260 420,300" />
-              <animateTransform attributeName="transform" type="translate" values="0 0; -20 8; 0 0" dur="4s" repeatCount="indefinite"/>
-            </g>
-          </svg>
-        </div>
-
-        <div class="meta-card">
-          <div style="flex:1">
-            <div style="font-weight:800">Precaución</div>
-            <p style="margin:6px 0 0 0;color:var(--muted);font-size:13px">Agencias espaciales monitorizan el clima espacial para proteger infraestructuras críticas.</p>
-          </div>
-          <div class="dot" aria-hidden="true"></div>
-        </div>
-      </aside>
-    </section>
-
-    <!-- PANEL 3: Ciclo solar y futuro -->
-    <section class="panel" data-index="3" id="panel-3" aria-labelledby="title-3" role="region">
-      <div class="content">
-        <h2 id="title-3" class="panel-title stagger">Ciclo solar y futuro</h2>
-        <p class="lead stagger" style="transition-delay:.05s">El Sol tiene ciclos de actividad de ~11 años (manchas, erupciones). Actualmente estamos en el Ciclo Solar 25. En unos ~5.000 millones de años se convertirá en gigante roja y finalmente en enana blanca.</p>
-
-        <div class="card-blurb stagger" style="transition-delay:.12s">
-          El ciclo afecta el número de manchas y la frecuencia de eventos energéticos; el destino estelar es parte del ciclo vital de las estrellas de masa similar.
-        </div>
-
-        <div class="facts stagger" style="transition-delay:.20s">
-          <div class="fact"><strong>Ciclo:</strong> ~11 años</div>
-          <div class="fact"><strong>Edad:</strong> ~4.6 mil M años</div>
-          <div class="fact"><strong>Fase futura:</strong> gigante roja → enana blanca</div>
-          <div class="fact"><strong>Escala:</strong> miles de millones de años</div>
-        </div>
-      </div>
-
-      <aside class="media">
-        <div class="illustration-wrap">
-          <!-- Inline SVG: life cycle stylized -->
-          <svg class="illustration" viewBox="0 0 800 600" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Ilustración vectorial del ciclo de vida del Sol">
-            <rect width="100%" height="100%" fill="transparent"/>
-            <!-- young sun -->
-            <g transform="translate(160,300)">
-              <circle r="60" fill="#ffd86b" />
-              <text x="-20" y="5" font-size="12" fill="#5a2500">Actual</text>
-            </g>
-            <!-- giant -->
-            <g transform="translate(400,300)">
-              <ellipse rx="140" ry="110" fill="#ff9b2d" opacity="0.95"/>
-              <text x="-46" y="5" font-size="12" fill="#5a2500">Gigante roja</text>
-            </g>
-            <!-- white dwarf -->
-            <g transform="translate(640,300)">
-              <circle r="28" fill="#f6f7ff" stroke="#c7d0ff" stroke-width="3"/>
-              <text x="-28" y="40" font-size="12" fill="#c7d0ff">Enana blanca</text>
-            </g>
-
-            <!-- arrows -->
-            <g stroke="#fff4d9" stroke-width="2" fill="none" opacity="0.9">
-              <path d="M220,300 C260,220 340,220 380,300" marker-end="url(#arr)"/>
-              <path d="M460,300 C520,380 600,380 640,300" marker-end="url(#arr)"/>
-            </g>
-            <defs>
-              <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
-                <path d="M0,0 L6,3 L0,6 z" fill="#fff4d9"/>
-              </marker>
-            </defs>
-          </svg>
-        </div>
-
-        <div class="meta-card">
-          <div style="flex:1">
-            <div style="font-weight:800">Perspectiva</div>
-            <p style="margin:6px 0 0 0;color:var(--muted);font-size:13px">Los procesos son gigantescos en tiempo y energía — pero muy predecibles a gran escala.</p>
-          </div>
-          <div class="dot" aria-hidden="true"></div>
-        </div>
-      </aside>
-    </section>
-
-  </div>
-</main>
-
-<!-- side progress -->
-<div class="side-progress" aria-hidden="false">
-  <div class="dot-btn active" data-target="0" title="Estructura"></div>
-  <div class="dot-btn" data-target="1" title="Energía"></div>
-  <div class="dot-btn" data-target="2" title="Influencia"></div>
-  <div class="dot-btn" data-target="3" title="Futuro"></div>
-</div>
-
-<script>
-/* ---------------------------
-   Partículas sutiles - Canvas
-   --------------------------- */
-(function particles(){
-  const canvas = document.getElementById('particle-canvas');
-  const ctx = canvas.getContext('2d');
-  let w = canvas.width = innerWidth, h = canvas.height = innerHeight;
-  window.addEventListener('resize', ()=>{ w=canvas.width=innerWidth; h=canvas.height=innerHeight; });
-
-  const N = Math.round((w*h)/70000);
-  const parts = Array.from({length: Math.max(60, N)}, ()=>({
-    x: Math.random()*w,
-    y: Math.random()*h,
-    r: Math.random()*1.8 + 0.3,
-    vx: (Math.random()-0.5)*0.15,
-    vy: (Math.random()-0.5)*0.15,
-    alpha: Math.random()*0.6 + 0.15
-  }));
-
-  function step(){
-    ctx.clearRect(0,0,w,h);
-    for(const p of parts){
-      p.x += p.vx;
-      p.y += p.vy;
-      if(p.x < -10) p.x = w + 10;
-      if(p.x > w + 10) p.x = -10;
-      if(p.y < -10) p.y = h + 10;
-      if(p.y > h + 10) p.y = -10;
-      ctx.beginPath();
-      ctx.fillStyle = 'rgba(255,255,255,'+ (p.alpha*0.9) +')';
-      ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
-      ctx.fill();
-    }
-    requestAnimationFrame(step);
-  }
-  step();
-})();
-
-/* ---------------------------
-   Navigation logic (panels)
-   --------------------------- */
-const panels = Array.from(document.querySelectorAll('.panel'));
-const navBtns = Array.from(document.querySelectorAll('.nav-btn'));
-const dots = Array.from(document.querySelectorAll('.dot-btn'));
-let current = 0;
-const STAGGER_DELAY = 90;
-
-function setActive(index, direction=1){
-  if(index === current) return;
-  // clamp
-  index = Math.max(0, Math.min(panels.length-1, index));
-  const prev = current;
-  const next = index;
-  // remove active from previous
-  panels[prev].classList.remove('active');
-  navBtns[prev].classList.remove('active');
-  navBtns[prev].setAttribute('aria-pressed','false');
-  dots[prev].classList.remove('active');
-
-  // activate next
-  panels[next].classList.add('active');
-  navBtns[next].classList.add('active');
-  navBtns[next].setAttribute('aria-pressed','true');
-  dots[next].classList.add('active');
-
-  // reveal staggered children for polish
-  revealStagger(panels[next]);
-
-  // update current
-  current = next;
-  // update URL hash (optional)
-  history.replaceState(null, '', '#p' + next);
-}
-
-function revealStagger(panelEl){
-  const items = panelEl.querySelectorAll('.stagger');
-  items.forEach((it, i) => {
-    it.classList.remove('show');
-    setTimeout(()=> it.classList.add('show'), i * STAGGER_DELAY + 90);
-  });
-}
-
-// init nav click
-navBtns.forEach(b => b.addEventListener('click', ()=> {
-  const target = Number(b.dataset.target);
-  setActive(target, target > current ? 1 : -1);
-}));
-
-dots.forEach(d => d.addEventListener('click', ()=> {
-  const target = Number(d.dataset.target);
-  setActive(target, target > current ? 1 : -1);
-}));
-
-// keyboard navigation
-window.addEventListener('keydown', e => {
-  if(e.key === 'ArrowRight'){ if(current < panels.length-1) setActive(current+1,1); }
-  if(e.key === 'ArrowLeft'){ if(current > 0) setActive(current-1,-1); }
-});
-
-// swipe support
-(function swipe(){
-  let sx=0, sy=0;
-  window.addEventListener('touchstart', e => {
-    sx = e.touches[0].clientX; sy = e.touches[0].clientY;
-  }, {passive:true});
-  window.addEventListener('touchend', e => {
-    const ex = e.changedTouches[0].clientX;
-    const dx = ex - sx;
-    if(Math.abs(dx) > 50){
-      if(dx < 0 && current < panels.length-1) setActive(current+1,1);
-      if(dx > 0 && current > 0) setActive(current-1,-1);
-    }
-  }, {passive:true});
-})();
-
-// Reveal first panel on load (stagger children)
-document.addEventListener('DOMContentLoaded', ()=> {
-  revealStagger(panels[0]);
-  // if URL has hash like #p2 open it
-  const hash = window.location.hash;
-  if(hash && hash.startsWith('#p')){
-    const idx = parseInt(hash.slice(2));
-    if(!isNaN(idx) && idx >= 0 && idx < panels.length) setActive(idx);
-  }
-});
-</script>
-</body>
+    <script src="{{ url_for('static', filename='js/optimize.js') }}"></script>
+  </body>
 </html>
-```
