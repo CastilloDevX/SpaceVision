@@ -3,346 +3,901 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>Comparador Espacial — SpaceVision</title>
-  <!-- Tailwind (CDN) para estilos modernos -->
+  <title>Comparador Espacial — SpaceVision (Gigapixel + Avanzado)</title>
+
+  <!-- Tailwind para estilos rápidos -->
   <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- OpenSeadragon (viewer tileado, IIIF, DZI, XYZ compatible) -->
+  <script src="https://openseadragon.github.io/openseadragon/openseadragon.min.js"></script>
+
   <style>
-    /* ===== Estilos extra (no cubiertos por Tailwind) ===== */
+    /* ===== Estilos extra y variables ===== */
     :root{
-      --panel-bg: #0b1220; /* pizarra-cósmica */
+      --bg: #020617;
+      --panel-bg: #0b1220;
       --panel-br: #1f2a44;
-      --accent: #58a6ff; /* azul NASA-ish */
-      --accent-2: #22d3ee; /* cian para overlays */
-      --grid-color: rgba(148,163,184,0.25); /* slate-400 atenuado */
+      --accent: #58a6ff;
+      --accent-2: #22d3ee;
+      --muted: #94a3b8;
+      --glass: rgba(255,255,255,0.03);
     }
 
-    /* Canvas responsive contenedor */
-    .viewport{
-      position: relative;
-      background: radial-gradient(1200px 500px at 20% 0%, rgba(88,166,255,.12), transparent 60%),
-                  radial-gradient(900px 400px at 80% 100%, rgba(34,211,238,.12), transparent 60%),
-                  #020617; /* slate-950 */
-      border: 1px solid var(--panel-br);
-      border-radius: 1rem; /* 2xl */
-      overflow: hidden;
-      user-select: none;
-    }
+    html,body { height:100%; margin:0; font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; background: radial-gradient(1200px 600px at 10% 0%, rgba(34,211,238,.03), transparent 20%), radial-gradient(900px 400px at 90% 100%, rgba(88,166,255,.03), transparent 30%), var(--bg); color: #d9e2ec; -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; }
 
-    canvas{ display:block; }
+    /* Header */
+    header { max-width:1200px; margin:20px auto 12px; padding:12px 18px; display:flex; align-items:center; gap:12px; background: linear-gradient(180deg, rgba(8,12,24,.6), rgba(2,6,23,.6)); border-radius:12px; border:1px solid var(--panel-br); box-shadow:0 6px 30px rgba(2,6,23,.6); }
 
-    /* Indicador de enlace (sync) entre visores */
-    .link-on{ filter: drop-shadow(0 0 8px rgba(88,166,255,.6)); }
+    h1{ font-size:1.4rem; margin:0; color:var(--accent); letter-spacing: -0.5px; }
+    .subtitle{ color:var(--muted); font-size:.9rem; margin-left:6px; }
 
-    /* Slider de corte (wipe) para modo Overlay */
-    .wipe-handle{
-      position: absolute; top:0; bottom:0; width: 2px; background: var(--accent);
-      box-shadow: 0 0 0 1px rgba(88,166,255,.5), 0 0 0 3px rgba(88,166,255,.25);
-      pointer-events: none;
-    }
-    .wipe-grabber{ position:absolute; top:50%; left:-10px; transform:translateY(-50%);
-      width:20px; height:20px; border-radius:999px; background: var(--accent);
-      border: 2px solid #0b1220; box-shadow: 0 8px 24px rgba(2,6,23,.5);
-    }
+    /* Layout */
+    main { max-width:1200px; margin: 8px auto 60px; display:grid; grid-template-columns: 360px 1fr; gap:16px; padding:0 14px; align-items:start; }
+    aside { background:var(--panel-bg); border:1px solid var(--panel-br); border-radius:12px; padding:14px; box-shadow:0 6px 20px rgba(2,6,23,.5); }
+    section.viewer-area { background: transparent; }
 
-    /* Tooltip minimal */
-    .tip{ position:absolute; transform: translate(-50%, -140%); background:#0b1220; color:#cbd5e1;
-      padding:.25rem .5rem; border:1px solid var(--panel-br); border-radius:.5rem; font-size:.75rem; white-space:nowrap; }
+    /* Toolbars and groups */
+    .toolbar{ background: linear-gradient(180deg, rgba(15,23,42,.95), rgba(2,6,23,.95)); border:1px solid var(--panel-br); border-radius:.75rem; padding:10px; }
+    label { display:block; font-size:0.86rem; color:var(--muted); margin-bottom:6px; }
 
-    /* Magnifier (lupa) */
-    .loupe{ position:absolute; width:160px; height:160px; border-radius:999px; overflow:hidden; border:2px solid var(--accent-2); box-shadow:0 6px 30px rgba(34,211,238,.25); pointer-events:none; display:none; }
+    input[type="url"], input[type="text"], input[type="number"], select { width:100%; padding:8px 10px; background:#071027; border:1px solid rgba(255,255,255,0.03); color:#cfe7ff; border-radius:8px; outline:none; font-size:0.88rem; }
+    input[type="range"]{ width:100%; }
 
-    /* Toggle chiclet */
-    .toggle { --w: 48px; --h: 28px; width:var(--w); height:var(--h); border-radius:999px; background:#1f2937; position:relative; border:1px solid #334155; cursor:pointer; }
-    .toggle i{ position:absolute; width:22px; height:22px; top:3px; left:3px; background:white; border-radius:999px; transition:transform .2s ease; }
-    .toggle[data-on="true"]{ background:#0ea5e9; }
-    .toggle[data-on="true"] i{ transform: translateX(calc(var(--w) - 26px)); }
+    button { background:linear-gradient(90deg,var(--accent),var(--accent-2)); color:#00111a; padding:8px 10px; border-radius:8px; border:0; cursor:pointer; font-weight:600; box-shadow:0 6px 20px rgba(34,211,238,.08); }
+    button.ghost { background:transparent; border:1px solid rgba(255,255,255,0.04); color:var(--muted); }
 
-    /* Botón redondo flotante (para ayuda) */
-    .fab { position:fixed; right:20px; bottom:20px; width:56px; height:56px; border-radius:999px; display:grid; place-items:center; background:linear-gradient(135deg, #60a5fa, #22d3ee); color:#00111a; box-shadow:0 10px 30px rgba(2,6,23,.6); border:1px solid rgba(255,255,255,.25); }
+    .small { font-size:0.82rem; color:var(--muted); }
 
-    /* Etiquetas mini */
-    .pill{ font-size:.625rem; letter-spacing:.02em; background: rgba(88,166,255,.15); border:1px solid rgba(88,166,255,.35); padding:.15rem .4rem; border-radius:.4rem; }
+    /* Viewer boxes */
+    .viewer-grid { display:grid; grid-template-columns: 1fr 1fr; gap:12px; }
+    .viewer-box { border-radius:12px; position:relative; overflow:hidden; min-height:320px; background:linear-gradient(180deg,#030519,#06122a); border:1px solid rgba(255,255,255,0.03); display:flex; flex-direction:column; }
+    .viewer-header { padding:8px 12px; display:flex; align-items:center; gap:8px; justify-content:space-between; border-bottom:1px solid rgba(255,255,255,0.02); }
+    .viewer-body { flex:1; position:relative; display:block; }
 
-    /* Barras */
-    .toolbar{ background: linear-gradient(180deg, rgba(15,23,42,.95), rgba(2,6,23,.95)); border:1px solid var(--panel-br); border-radius:.75rem; }
+    /* OpenSeadragon containers (fill parent) */
+    .osd-container { width:100%; height:480px; background:#00101a; display:block; position:relative; }
+    .osd-mini { height:300px; }
+
+    /* Overlay mode: single big canvas */
+    #overlayContainer { width:100%; height:560px; border-radius:12px; overflow:hidden; position:relative; border:1px solid rgba(255,255,255,0.03); }
+
+    /* Wipe handle for overlay */
+    .wipe-handle{ position:absolute; top:0; bottom:0; width:3px; background:var(--accent); box-shadow:0 0 6px rgba(88,166,255,.25); left:50%; transform:translateX(-50%); z-index:80; }
+    .wipe-grabber{ position:absolute; left:-10px; top:50%; transform:translateY(-50%); width:20px; height:20px; border-radius:999px; background:var(--accent); border:2px solid #071022; }
+
+    /* Loupe */
+    .loupe{ position:absolute; width:180px; height:180px; border-radius:999px; overflow:hidden; border:3px solid rgba(34,211,238,.12); box-shadow:0 8px 40px rgba(2,6,23,.6); pointer-events:none; display:none; z-index:120; background:#02101a; }
+
+    /* Tiny pills and indicators */
+    .pill{ background:rgba(88,166,255,.08); padding:4px 8px; border-radius:999px; font-size:0.78rem; color:var(--accent); border:1px solid rgba(88,166,255,.12); }
+    .tile-loading { position:absolute; left:10px; bottom:10px; background:rgba(2,6,23,.7); padding:6px 10px; border-radius:8px; border:1px solid rgba(255,255,255,.03); font-size:0.8rem; z-index:120; }
+
+    /* Controls grid */
+    .controls-grid { display:grid; grid-template-columns: 1fr 1fr; gap:8px; align-items:center; }
+
+    /* Responsive */
+    @media (max-width:1024px){ main { grid-template-columns: 1fr; } .osd-container{ height:360px; } #overlayContainer{ height:420px; } }
   </style>
 </head>
-<body class="bg-slate-950 text-slate-100 antialiased">
-  <!-- ===== Encabezado ===== -->
-  <header class="max-w-7xl mx-auto px-4 sm:px-6 py-4">
-    <div class="flex flex-wrap items-center gap-3">
-      <div class="flex items-center gap-3">
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none"><path d="M12 2a10 10 0 100 20 10 10 0 000-20Zm.5 3.5a6.5 6.5 0 016.5 6.5c0 4.694-5.5 3.5-7 5.5-2-2.5-6-1-6-5a6 6 0 016-7Z" fill="#58a6ff"/></svg>
-        <h1 class="text-2xl md:text-3xl font-semibold tracking-tight">Comparador Espacial<span class="pill align-middle ml-2">SpaceVision</span></h1>
-      </div>
-      <div class="ml-auto flex items-center gap-3 text-slate-300">
-        <span class="hidden md:inline opacity-75">Dos modos de visualización:</span>
-        <div class="inline-flex bg-slate-900/70 border border-slate-700 rounded-xl overflow-hidden">
-          <button id="btnModeSide" class="px-3 py-2 text-sm hover:bg-slate-800/70 data-[active=true]:bg-slate-800/80" data-active="true">Separado</button>
-          <button id="btnModeOverlay" class="px-3 py-2 text-sm hover:bg-slate-800/70">Capa sobre capa</button>
-        </div>
-      </div>
+<body>
+  <header>
+    <svg width="34" height="34" viewBox="0 0 24 24" fill="none"><path d="M12 2a10 10 0 100 20 10 10 0 000-20Zm.5 3.5a6.5 6.5 0 016.5 6.5c0 4.694-5.5 3.5-7 5.5-2-2.5-6-1-6-5a6 6 0 016-7Z" fill="#58a6ff"/></svg>
+    <div style="flex:1;">
+      <h1>Comparador Espacial — SpaceVision <span class="small">(Gigapixel · IIIF · DZI · XYZ · Sobel · Diff)</span></h1>
+      <div class="subtitle">Visor tileado + análisis en cliente. Carga URLs de tiles o archivos locales. Usa CORS o carga local para análisis pixel-perfect.</div>
+    </div>
+    <div style="display:flex; gap:8px; align-items:center;">
+      <div class="pill">SpaceVision</div>
+      <button id="btnHelp" title="Ayuda" class="ghost" style="padding:6px 10px;">?</button>
     </div>
   </header>
 
-  <!-- ===== Layout principal ===== -->
-  <main class="max-w-7xl mx-auto px-4 sm:px-6 pb-24 grid grid-cols-1 lg:grid-cols-12 gap-6">
-    <!-- Panel de control -->
-    <aside class="lg:col-span-4 xl:col-span-3 space-y-4">
-      <section class="toolbar p-4">
-        <h2 class="text-lg font-medium mb-3">Imágenes</h2>
-        <div class="grid grid-cols-2 gap-3">
-          <div>
-            <label class="block text-sm mb-1">Imagen A</label>
-            <input id="fileA" type="file" accept="image/*" class="block w-full text-sm file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border file:border-slate-600 file:bg-slate-800 file:text-slate-100 file:hover:bg-slate-700/80"/>
-            <input id="urlA" type="url" placeholder="o URL…" class="mt-2 w-full bg-slate-900 border border-slate-700 rounded-md px-2.5 py-1.5 text-sm"/>
-          </div>
-          <div>
-            <label class="block text-sm mb-1">Imagen B</label>
-            <input id="fileB" type="file" accept="image/*" class="block w-full text-sm file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border file:border-slate-600 file:bg-slate-800 file:text-slate-100 file:hover:bg-slate-700/80"/>
-            <input id="urlB" type="url" placeholder="o URL…" class="mt-2 w-full bg-slate-900 border border-slate-700 rounded-md px-2.5 py-1.5 text-sm"/>
-          </div>
-        </div>
-        <div class="mt-3">
-          <label class="block text-sm mb-1">Presets oficiales (NASA)</label>
-          <select id="preset" class="w-full bg-slate-900 border border-slate-700 rounded-md px-2.5 py-2 text-sm">
-            <option value="">— Elegir par de comparación —</option>
-            <option value="full2025_vs_full2016">Luna llena 2025 (LRO render) vs Luna llena 2016</option>
-            <option value="mosaic2018_vs_full2025">Mosaico NAC 2018 (LRO) vs Luna llena 2025</option>
-            <option value="tycho_oblicua_vs_nadir">Tycho: pico central oblicuo vs vista cenital</option>
+  <main>
+    <!-- PANEL LATERAL: controles avanzados -->
+    <aside>
+      <!-- Fuentes / Carga -->
+      <div class="toolbar" style="margin-bottom:12px;">
+        <h3 class="small" style="margin-bottom:8px;">Fuentes de imágenes</h3>
+
+        <label>Imagen A — archivo o URL (IIIF/DZI/XYZ)</label>
+        <input id="fileA" type="file" accept="image/*" />
+        <input id="urlA" type="url" placeholder="o URL (info.json / .dzi / plantilla / imagen) ..." style="margin-top:8px;" />
+
+        <div style="height:8px"></div>
+
+        <label>Imagen B — archivo o URL (IIIF/DZI/XYZ)</label>
+        <input id="fileB" type="file" accept="image/*" />
+        <input id="urlB" type="url" placeholder="o URL (info.json / .dzi / plantilla / imagen) ..." style="margin-top:8px;" />
+
+        <div style="height:10px"></div>
+        <div style="display:flex; gap:8px;">
+          <select id="tileType" style="flex:1;">
+            <option value="auto">Auto-detect (recomendado)</option>
+            <option value="iiif">IIIF (info.json base)</option>
+            <option value="dzi">DZI (.dzi)</option>
+            <option value="xyz">Template /{z}/{x}/{y}</option>
+            <option value="image">Imagen (única)</option>
           </select>
+          <button id="btnLoadInputs">Cargar</button>
         </div>
-        <div class="mt-4 flex items-center gap-3">
-          <button id="btnLoadInputs" class="px-3 py-2 bg-sky-600 hover:bg-sky-500 rounded-md text-sm font-medium">Cargar URLs</button>
-          <button id="btnReset" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 rounded-md text-sm">Reiniciar vista</button>
-        </div>
-        <p class="text-xs text-slate-400 mt-2">Sugerencia: para análisis de píxeles (bordes/diferencias) las imágenes deben permitir CORS o cargarse desde archivo local.</p>
-      </section>
 
-      <section class="toolbar p-4">
-        <h2 class="text-lg font-medium mb-3">Herramientas</h2>
-        <div class="grid grid-cols-2 gap-3">
-          <div class="col-span-2 flex items-center justify-between">
-            <span class="text-sm">Enlazar visores (zoom/pan)</span>
-            <div id="toggleSync" class="toggle" role="switch" aria-label="Enlazar" data-on="true"><i></i></div>
-          </div>
-          <div class="col-span-2 flex items-center justify-between">
-            <span class="text-sm">Rejilla</span>
-            <div id="toggleGrid" class="toggle" role="switch" aria-label="Rejilla" data-on="false"><i></i></div>
-          </div>
-          <div class="col-span-2 flex items-center justify-between">
-            <span class="text-sm">Lupa (mantén Alt)</span>
-            <div id="toggleLoupe" class="toggle" role="switch" aria-label="Lupa" data-on="true"><i></i></div>
-          </div>
-          <div class="col-span-2 border-t border-slate-700 pt-3"></div>
-          <div class="col-span-2 flex items-center justify-between">
-            <span class="text-sm">Detección de bordes (Sobel)</span>
-            <div id="toggleEdges" class="toggle" role="switch" aria-label="Bordes" data-on="false"><i></i></div>
-          </div>
-          <div>
-            <label class="block text-xs mb-1">Intensidad bordes</label>
-            <input id="edgesStrength" type="range" min="0" max="3" step="0.05" value="1" class="w-full"/>
-          </div>
-          <div>
-            <label class="block text-xs mb-1">Transparencia bordes</label>
-            <input id="edgesAlpha" type="range" min="0" max="1" step="0.05" value="0.75" class="w-full"/>
-          </div>
-          <div class="col-span-2 border-t border-slate-700 pt-3"></div>
-          <div class="col-span-2 flex items-center justify-between">
-            <span class="text-sm">Diferencias (A vs B)</span>
-            <div id="toggleDiff" class="toggle" role="switch" aria-label="Diferencias" data-on="false"><i></i></div>
-          </div>
-          <div>
-            <label class="block text-xs mb-1">Umbral (Δ)</label>
-            <input id="diffThreshold" type="range" min="0" max="128" value="24" class="w-full"/>
-          </div>
-          <div>
-            <label class="block text-xs mb-1">Ganancia calor</label>
-            <input id="diffGain" type="range" min="1" max="6" step="0.1" value="2.5" class="w-full"/>
-          </div>
+        <div style="margin-top:8px;">
+          <label class="small">Plantilla (si usas XYZ)</label>
+          <input id="tileTemplate" placeholder="https://example.com/tiles/{z}/{x}/{y}.jpg" />
         </div>
-      </section>
 
-      <section class="toolbar p-4">
-        <h2 class="text-lg font-medium mb-3">Ajustes visuales</h2>
-        <div class="grid grid-cols-2 gap-3">
-          <div>
-            <label class="block text-xs mb-1">Brillo</label>
-            <input id="brightness" type="range" min="0.5" max="1.5" step="0.01" value="1" class="w-full"/>
-          </div>
-          <div>
-            <label class="block text-xs mb-1">Contraste</label>
-            <input id="contrast" type="range" min="0.5" max="1.5" step="0.01" value="1" class="w-full"/>
-          </div>
-          <div>
-            <label class="block text-xs mb-1">Gamma</label>
-            <input id="gamma" type="range" min="0.5" max="1.8" step="0.01" value="1" class="w-full"/>
-          </div>
-          <div>
-            <label class="block text-xs mb-1">Opacidad (B en overlay)</label>
-            <input id="overlayAlpha" type="range" min="0" max="1" step="0.02" value="0.65" class="w-full"/>
-          </div>
+        <div style="margin-top:8px;">
+          <label class="small">Nivel máximo (opcional)</label>
+          <input id="tileMaxLevel" type="number" min="0" placeholder="ej: 8" />
         </div>
-        <div class="mt-3 flex items-center gap-2">
-          <button id="btnFit" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 rounded-md text-sm">Ajustar a ventana</button>
-          <button id="btn100" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 rounded-md text-sm">100%</button>
-          <button id="btnExport" class="px-3 py-2 bg-emerald-600 hover:bg-emerald-500 rounded-md text-sm">Exportar PNG</button>
-        </div>
-      </section>
 
-      <section class="text-xs text-slate-400 leading-relaxed p-2">
-        <p>Créditos imágenes por defecto: NASA/GSFC/SVS, LRO/LROC/LOLA. Ver comentarios al final del archivo para las URLs.</p>
-      </section>
+        <p class="small" style="margin-top:10px;">Sugerencia: para comparaciones y análisis a nivel píxel necesitas que los tiles permitan CORS o cargar archivos locales. Para grandes datasets use IIIF/DZI servers con CORS habilitado.</p>
+      </div>
+
+      <!-- Herramientas -->
+      <div class="toolbar" style="margin-bottom:12px;">
+        <h3 class="small" style="margin-bottom:6px;">Herramientas</h3>
+
+        <div class="controls-grid" style="margin-bottom:8px;">
+          <div><label class="small">Enlazar visores</label><div id="toggleSync" class="pill" style="display:inline-block; cursor:pointer;" data-on="true">ON</div></div>
+          <div><label class="small">Rejilla</label><div id="toggleGrid" class="pill" style="display:inline-block; cursor:pointer;" data-on="false">OFF</div></div>
+          <div><label class="small">Lupa (Alt)</label><div id="toggleLoupe" class="pill" style="display:inline-block; cursor:pointer;" data-on="true">ON</div></div>
+          <div><label class="small">Modo Tileado</label><div id="toggleTileMode" class="pill" style="display:inline-block; cursor:pointer;" data-on="true">AUTO</div></div>
+        </div>
+
+        <div style="border-top:1px dashed rgba(255,255,255,0.03); padding-top:8px; margin-top:8px;">
+          <label class="small">Detección de bordes (Sobel)</label>
+          <div style="display:flex; gap:8px; align-items:center;">
+            <div id="toggleEdges" class="pill" data-on="false" style="cursor:pointer;">OFF</div>
+            <input id="edgesStrength" type="range" min="0" max="4" step="0.05" value="1" />
+          </div>
+
+          <div style="height:10px;"></div>
+
+          <label class="small">Diferencias (A vs B)</label>
+          <div style="display:flex; gap:8px; align-items:center;">
+            <div id="toggleDiff" class="pill" data-on="false" style="cursor:pointer;">OFF</div>
+            <div style="flex:1;"><input id="diffThreshold" type="range" min="0" max="255" step="1" value="24" /></div>
+          </div>
+
+          <div style="height:10px;"></div>
+
+          <label class="small">Ganancia (heat)</label>
+          <input id="diffGain" type="range" min="1" max="6" step="0.1" value="2.5" />
+        </div>
+      </div>
+
+      <!-- Visuales y export -->
+      <div class="toolbar" style="margin-bottom:12px;">
+        <h3 class="small" style="margin-bottom:6px;">Ajustes visuales & export</h3>
+        <div class="controls-grid">
+          <div><label class="small">Brillo</label><input id="brightness" type="range" min="0.5" max="1.6" step="0.01" value="1" /></div>
+          <div><label class="small">Contraste</label><input id="contrast" type="range" min="0.5" max="1.6" step="0.01" value="1" /></div>
+          <div><label class="small">Gamma</label><input id="gamma" type="range" min="0.5" max="1.8" step="0.01" value="1" /></div>
+          <div><label class="small">Opacidad B</label><input id="overlayAlpha" type="range" min="0" max="1" step="0.02" value="0.65" /></div>
+        </div>
+
+        <div style="margin-top:10px; display:flex; gap:8px;">
+          <button id="btnFit">Ajustar a ventana</button>
+          <button id="btn100" class="ghost">100%</button>
+          <button id="btnExport" style="flex:1;">Exportar PNG (overlay)</button>
+        </div>
+
+        <div style="margin-top:8px;"><small class="small">Exporta lo que ves en modo Overlay (mezcla). Si las imágenes provienen de tiles sin CORS, el export puede verse limitado.</small></div>
+      </div>
+
+      <!-- Gigapixel helper -->
+      <div class="toolbar">
+        <h3 class="small">Gigapíxel / Tiled — consejos</h3>
+        <ol class="small" style="margin-left:12px; margin-top:6px;">
+          <li>Preferible IIIF o DZI (tienen info.json / .dzi con metadatos de niveles).</li>
+          <li>Si usas template XYZ, completa <code>/{z}/{x}/{y}.jpg</code>.</li>
+          <li>Si el análisis falla por CORS, descarga tiles o usa backend con OpenCV.</li>
+        </ol>
+      </div>
     </aside>
 
-    <!-- Área de visualización -->
-    <section id="displayArea" class="lg:col-span-8 xl:col-span-9 space-y-4">
-      <!-- Barra herramientas superior -->
-      <div class="toolbar p-3 flex flex-wrap items-center gap-3">
-        <div class="flex items-center gap-2">
-          <button id="btnZoomIn" class="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 rounded-md text-sm">+ Zoom</button>
-          <button id="btnZoomOut" class="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 rounded-md text-sm">− Zoom</button>
-          <span id="zoomReadout" class="text-sm text-slate-300 ml-1">100%</span>
+    <!-- ÁREA de visualización (los visores) -->
+    <section class="viewer-area">
+      <!-- toolbar -->
+      <div class="toolbar" style="margin-bottom:8px; display:flex; align-items:center; gap:8px;">
+        <div style="display:flex; gap:6px; align-items:center;">
+          <button id="btnModeSide" class="ghost">Separado</button>
+          <button id="btnModeOverlay">Capa sobre capa</button>
         </div>
-        <div class="ml-auto flex items-center gap-2">
-          <span class="text-sm text-slate-400">Arrastra para mover • Rueda para zoom • Alt = Lupa</span>
-        </div>
-      </div>
-
-      <!-- Modo SEPARADO (2 visores) -->
-      <div id="modeSide" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div class="viewport" id="vpA" aria-label="Visor A">
-          <canvas id="canvasA"></canvas>
-          <div class="loupe" id="loupeA"></div>
-        </div>
-        <div class="viewport" id="vpB" aria-label="Visor B">
-          <canvas id="canvasB"></canvas>
-          <div class="loupe" id="loupeB"></div>
+        <div style="margin-left:auto; display:flex; gap:8px; align-items:center;">
+          <button id="btnZoomIn" class="ghost">+ Zoom</button>
+          <button id="btnZoomOut" class="ghost">− Zoom</button>
+          <div id="zoomReadout" class="small">100%</div>
         </div>
       </div>
 
-      <!-- Modo OVERLAY (un solo lienzo) -->
-      <div id="modeOverlay" class="hidden">
-        <div class="viewport" id="vpOverlay" aria-label="Visor Overlay">
-          <canvas id="canvasOverlay"></canvas>
+      <!-- MODO SEPARADO: 2 viewers con OpenSeadragon -->
+      <div id="modeSide" class="viewer-grid">
+        <div class="viewer-box">
+          <div class="viewer-header">
+            <div><strong>A</strong> <span class="small" id="labelA">(sin cargar)</span></div>
+            <div style="display:flex; gap:8px; align-items:center;">
+              <div class="pill small" id="pillA_type">—</div>
+              <div class="pill small" id="pillA_tiles">tiles: 0</div>
+            </div>
+          </div>
+          <div class="viewer-body">
+            <div id="viewerA" class="osd-container"></div>
+            <div class="tile-loading" id="loadA" style="display:none">A: 0 tiles</div>
+            <div class="loupe" id="loupeA"></div>
+          </div>
+        </div>
+
+        <div class="viewer-box">
+          <div class="viewer-header">
+            <div><strong>B</strong> <span class="small" id="labelB">(sin cargar)</span></div>
+            <div style="display:flex; gap:8px; align-items:center;">
+              <div class="pill small" id="pillB_type">—</div>
+              <div class="pill small" id="pillB_tiles">tiles: 0</div>
+            </div>
+          </div>
+          <div class="viewer-body">
+            <div id="viewerB" class="osd-container"></div>
+            <div class="tile-loading" id="loadB" style="display:none">B: 0 tiles</div>
+            <div class="loupe" id="loupeB"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- MODO OVERLAY: un canvas superpuesto (dibuja snapshot/tiles en canvas para mezclar) -->
+      <div id="modeOverlay" style="display:none;">
+        <div id="overlayContainer">
+          <canvas id="canvasOverlay" style="width:100%; height:100%; display:block;"></canvas>
           <div id="wipeHandle" class="wipe-handle" style="left:50%"><div class="wipe-grabber"></div></div>
           <div class="loupe" id="loupeO"></div>
-          <div id="overlayTip" class="tip" style="left:50%; top: 10px; display:none;">Arrastra para deslizar A/B</div>
+          <div class="tile-loading" id="loadO" style="display:none">Tiles: 0</div>
         </div>
-        <div class="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <div>
-            <label class="block text-xs mb-1">Posición del corte (A↔B)</label>
-            <input id="wipe" type="range" min="0" max="1" step="0.01" value="0.5" class="w-full"/>
-          </div>
-          <div>
-            <label class="block text-xs mb-1">Mezcla (composición)</label>
-            <select id="blendMode" class="w-full bg-slate-900 border border-slate-700 rounded-md px-2.5 py-2 text-sm">
-              <option value="normal">normal</option>
-              <option value="multiply">multiply</option>
-              <option value="screen">screen</option>
-              <option value="overlay">overlay</option>
-              <option value="lighten">lighten</option>
-              <option value="darken">darken</option>
-              <option value="difference">difference</option>
-              <option value="exclusion">exclusion</option>
-              <option value="color-burn">color-burn</option>
-              <option value="color-dodge">color-dodge</option>
-            </select>
-          </div>
-          <div>
-            <label class="block text-xs mb-1">Opacidad de B</label>
-            <input id="alphaB" type="range" min="0" max="1" step="0.02" value="0.65" class="w-full"/>
-          </div>
+
+        <div style="margin-top:10px; display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px;">
+          <div><label class="small">Posición del corte (A↔B)</label><input id="wipe" type="range" min="0" max="1" step="0.01" value="0.5" /></div>
+          <div><label class="small">Mezcla (composición)</label>
+            <select id="blendMode"><option value="source-over">normal</option><option value="multiply">multiply</option><option value="screen">screen</option><option value="overlay">overlay</option><option value="difference">difference</option><option value="exclusion">exclusion</option></select></div>
+          <div><label class="small">Opacidad B</label><input id="alphaB" type="range" min="0" max="1" step="0.02" value="0.65" /></div>
         </div>
       </div>
     </section>
   </main>
 
-  <a
-      href="/museum"
-      title="Ir a inicio"
-      aria-label="Inicio"
-      style="
-        position: fixed;
-        bottom: 25px;
-        right: 25px;
-        width: 60px;
-        height: 60px;
-        background: #111;
-        color: #ffffff;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        border-radius: 50%;
-        cursor: pointer;
-        text-decoration: none;
-        transition: all 0.2s ease;
-        z-index: 9999;
-      "
-    >
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        width="30"
-        height="30"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-        style="display: block"
-      >
-        <!-- Marco de la imagen -->
-        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-        <!-- Círculo del sol o luna -->
-        <circle cx="8.5" cy="8.5" r="1.5"></circle>
-        <!-- Montañas o paisajes -->
-        <polyline points="21 15 16 10 5 21"></polyline>
-      </svg>
-    </a>
+  <!-- Botón fijo ir a /museum (tu diseño original) -->
+  <a href="/museum" title="Ir a inicio" aria-label="Inicio" style="position: fixed; bottom: 22px; right: 22px; width: 56px; height: 56px; background: #071018; color: #ffffff; display: flex; align-items: center; justify-content: center; border-radius: 50%; cursor: pointer; text-decoration: none; z-index:9999; border:1px solid rgba(255,255,255,.03);">
+    <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+  </a>
 
-  <!-- ===== Script principal ===== -->
+  <!-- ===== SCRIPT PRINCIPAL (EXTENSO, DOCUMENTADO y MODULAR) ===== -->
   <script>
-  /**
-   * Comparador Lunar — NASA
-   * --------------------------------------------------------------
-   * Características clave:
-   *  - Dos modos: visores separados y overlay (capa sobre capa con wipe y blend).
-   *  - Zoom/pan (rueda + arrastre) con opción de sincronización.
-   *  - Rejilla, lupa (Alt), y lectura de zoom.
-   *  - Detección de bordes (Sobel) y mapa de diferencias (A vs B) con heatmap.
-   *  - Ajustes de brillo/contraste/gamma (shader CPU simple sobre el dibujado).
-   *  - Carga desde archivo o URL + presets con imágenes oficiales de NASA SVS.
-   *  - Exportación de PNG en modo overlay.
-   *  - Degradado visual sutil estilo "mission control".
-   *
-   * Notas técnicas importantes:
-   *  - Para análisis de píxeles, el lienzo debe NO estar "tainted" por CORS. Algunas
-   *    imágenes remotas (aunque públicas) pueden no incluir cabecera CORS. Si ocurre,
-   *    se desactiva lectura de píxeles y se muestra advertencia.
-   */
+  /* ===========================================================================
+     Comparador Espacial — SpaceVision (versión avanzada)
+     - Soporte OpenSeadragon para gigapíxeles (IIIF, DZI, XYZ)
+     - Snapshot + ensamblado de tiles para análisis (sobel/diff)
+     - Cálculos pesados en Web Worker (no bloquea UI)
+     - Lupa (Alt), export PNG, máscaras/overlay, blend modes
+     - Múltiples fallbacks y mensajes para CORS
+     - Código modular, muy comentado para facilitar mantenimiento
+     =========================================================================== */
 
-  // ================= Utilidades de carga =================
+  // ---------- Utilidades generales ----------
+  function $(id){ return document.getElementById(id); }
+  function clamp(v,a,b){ return Math.max(a, Math.min(b, v)); }
+  const DEBUG = false;
+
+  // ---------- Presets (NASA etc) ----------
   const NASA = {
-    // URLs oficiales (SVS/GSFC) — pueden cambiar con el tiempo en el servidor.
-    full2025: 'https://svs.gsfc.nasa.gov/vis/a000000/a005000/a005048/phase_full.1571_print.jpg', // 2025 full moon
-    full2016: 'https://svs.gsfc.nasa.gov/vis/a000000/a004200/a004236/phase_full.0815_preview.jpg', // 2016 full moon
-    mosaic2018: 'https://svs.gsfc.nasa.gov/vis/a000000/a005000/a005001/moon_mosaic_print.jpg',      // LRO NAC mosaic 2018
+    full2025: 'https://svs.gsfc.nasa.gov/vis/a000000/a005000/a005048/phase_full.1571_print.jpg',
+    full2016: 'https://svs.gsfc.nasa.gov/vis/a000000/a004200/a004236/phase_full.0815_preview.jpg',
+    mosaic2018: 'https://svs.gsfc.nasa.gov/vis/a000000/a005000/a005001/moon_mosaic_print.jpg',
     tychoOblique: 'https://svs.gsfc.nasa.gov/vis/a000000/a004200/a004220/tycho_central_peak_wide_print.jpg',
     tychoNadir:   'https://svs.gsfc.nasa.gov/vis/a000000/a004200/a004220/tycho_central_peak_nadir_print.jpg'
   };
 
-  function loadImage(src){
-    return new Promise((resolve, reject)=>{
+  // ---------- Estado global ----------
+  const state = {
+    // UI mode
+    mode: 'side', // 'side' | 'overlay'
+    // toggles
+    sync: true,
+    grid: false,
+    loupe: true,
+    tileModeAuto: true,
+    // visual params
+    brightness: 1,
+    contrast: 1,
+    gamma: 1,
+    overlayAlpha: 0.65,
+    blendMode: 'source-over',
+    wipe: 0.5,
+    // analysis
+    edgesOn: false,
+    edgesStrength: 1,
+    edgesAlpha: 0.75,
+    diffOn: false,
+    diffThreshold: 24,
+    diffGain: 2.5,
+    // viewers
+    A: { viewer: null, tileSource: null, tiled:true, label: 'A', loadingTiles:0, type:'—', lastSnapshot:null, tainted:false },
+    B: { viewer: null, tileSource: null, tiled:true, label: 'B', loadingTiles:0, type:'—', lastSnapshot:null, tainted:false },
+    O: { zoom:1, x:0, y:0, diff: null }
+  };
+
+  // ---------- Contructores / wrappers para OpenSeadragon y TileSource ----------
+  // Nota: si usas IIIF o DZI nativos, OpenSeadragon los maneja automáticamente si
+  // pasas tileSources: 'https://.../info.json' o '.../imagen.dzi'.
+  //
+  // Para plantillas XYZ (/{z}/{x}/{y}.jpg) creamos un TileSource "dinámico" para que OSD pueda pedir tiles.
+  // No pretendemos replicar todo OSD TileSource API; hacemos lo suficiente para la integración.
+  function createOSDViewer(containerId, options = {}) {
+    const viewer = OpenSeadragon({
+      id: containerId,
+      prefixUrl: "https://openseadragon.github.io/openseadragon/images/",
+      showNavigator: true,
+      showRotationControl: false,
+      gestureSettingsMouse: { clickToZoom: false, dblClickToZoom: true, pinchToZoom: true, scrollToZoom: true },
+      // maxZoomPixelRatio and minZoomImageRatio can be tuned
+      maxZoomPixelRatio: 2,
+      ...options
+    });
+    return viewer;
+  }
+
+  // Crear un TileSource para plantilla XYZ (muy simple).
+  // Si conoces width/height y maxLevel, pásalos (mejor precisión).
+  function createXYZTileSource(template, tileSize=256, maxLevel=null, width=null, height=null, format='jpg') {
+    // template debe contener {z},{x},{y}
+    return {
+      type: 'xyz',
+      width: width,
+      height: height,
+      tileSize: tileSize,
+      maxLevel: maxLevel,
+      getTileUrl: (level, x, y) => {
+        try {
+          return template.replace('{z}', level).replace('{x}', x).replace('{y}', y);
+        } catch(e){ return null; }
+      },
+      // OpenSeadragon legacy: getTileUrl is preferred if OSD tileSource wrapper used
+      src: template,
+      format: format
+    };
+  }
+
+  // Heurística para detectar tipo de fuente (IIIF, DZI, XYZ, image)
+  function detectSourceType(url, forcedType='auto') {
+    if(forcedType && forcedType !== 'auto') return forcedType;
+    if(!url) return 'image';
+    const u = url.toLowerCase();
+    if(u.endsWith('.dzi')) return 'dzi';
+    if(u.endsWith('info.json') || u.includes('/iiif/')) return 'iiif';
+    if(u.includes('{z}') || u.includes('{x}') || u.includes('{y}')) return 'xyz';
+    // fallback: treat as single image
+    return 'image';
+  }
+
+  // ---------- Helper: load a "source" into a viewer ----------
+  // This function decides whether to call viewer.open(tileSources) for OSD or load as image.
+  async function loadSourceIntoViewer(which, url, options={}) {
+    // which: 'A' or 'B'
+    const item = state[which];
+    const viewer = item.viewer;
+    const forcedType = document.getElementById('tileType')?.value || 'auto';
+    const template = document.getElementById('tileTemplate')?.value?.trim();
+    const maxLevel = parseInt(document.getElementById('tileMaxLevel')?.value) || null;
+
+    const type = detectSourceType(template || url, forcedType);
+    item.type = type;
+    // update UI badges
+    $('pill'+which+'_type').textContent = type.toUpperCase();
+
+    if(type === 'image') {
+      // load as single image
+      item.tiled = false;
+      item.tileSource = null;
+      try {
+        const img = await loadHTMLImage(url);
+        // open in OSD as single image
+        viewer.open({
+          type: 'image',
+          url: img.src
+        });
+        item.tiled = false;
+        item.tileSource = null;
+        item.lastSnapshot = null;
+        item.tainted = false;
+        // detect CORS by attempting to draw to canvas
+        await testImageCORS(img).then(()=>{ item.tainted = false; }).catch(()=>{ item.tainted = true; });
+        $('label'+which) && ( $('label'+which).textContent = '('+ (url.length>40? url.slice(0,40)+'...': url) +')' );
+        return { success:true, message:'Imagen cargada' };
+      } catch(e){
+        console.warn('Error cargando imagen', e);
+        throw new Error('No se pudo cargar imagen: ' + (e.message || e));
+      }
+    }
+
+    if(type === 'iiif') {
+      // let OpenSeadragon handle info.json: viewer.open(info.json url)
+      item.tiled = true;
+      item.tileSource = url; // store original
+      try {
+        viewer.open(url);
+        item.tiled = true;
+        item.tileSource = url;
+        item.lastSnapshot = null;
+        item.tainted = false; // unknown until snapshot test
+        $('label'+which) && ( $('label'+which).textContent = '(IIIF: '+short(url)+')' );
+        return { success:true, message:'IIIF abierto' };
+      } catch(e){
+        console.warn('IIIF open error', e);
+        throw e;
+      }
+    }
+
+    if(type === 'dzi') {
+      item.tiled = true;
+      item.tileSource = url;
+      try {
+        viewer.open(url);
+        item.tiled = true;
+        item.tileSource = url;
+        $('label'+which) && ( $('label'+which).textContent = '(DZI: '+short(url)+')' );
+        return { success:true, message:'DZI abierto' };
+      } catch(e){
+        throw e;
+      }
+    }
+
+    if(type === 'xyz') {
+      // For XYZ, create a very simple OSD tileSource wrapper if possible.
+      item.tiled = true;
+      const templ = template || url;
+      item.tileSource = templ;
+      // try to build an OSD tileSource via a "manual" descriptor - OSD can accept an object with getTileUrl
+      // But to keep compatibility, we'll open a blank image and let our "tile assembler" pull tiles directly for analysis.
+      // For display, create a custom TileSource via OpenSeadragon's TileSource constructor.
+      try {
+        // We attempt to open a custom TileSource using a minimal descriptor. OpenSeadragon expects certain props; this is a heuristic.
+        const tileSize = 256;
+        // attempt to guess maxLevel if user provided
+        const ml = maxLevel || null;
+        const ts = {
+          // OSD will attempt to query width/height; if unknown, OSD behaves but zoom-level calculations degrade.
+          width: options.width || null,
+          height: options.height || null,
+          tileSize: tileSize,
+          getTileUrl: function(level, x, y) { return templ.replace('{z}', level).replace('{x}', x).replace('{y}', y); },
+          // fallback: src points to template for reference
+          src: templ,
+          type: 'xyz'
+        };
+        viewer.open(ts);
+        item.tiled = true;
+        item.tileSource = ts;
+        $('label'+which) && ( $('label'+which).textContent = '(XYZ: '+short(templ)+')' );
+        return { success:true, message:'XYZ abierto' };
+      } catch(e){
+        console.warn('XYZ open error', e);
+        throw e;
+      }
+    }
+
+    return { success:false, message:'Tipo desconocido' };
+  }
+
+  // ---------- Low-level image helpers ----------
+  function loadHTMLImage(src) {
+    // returns Promise<HTMLImageElement>
+    return new Promise((resolve, reject) => {
       const img = new Image();
-      // Intento de CORS: si el servidor lo permite, el canvas no quedará tainted
-      img.crossOrigin = 'anonymous';
+      // don't set crossOrigin for data: URIs
+      if(!src.startsWith('data:')) img.crossOrigin = 'anonymous';
       img.onload = ()=> resolve(img);
       img.onerror = (e)=> reject(new Error('No se pudo cargar la imagen: '+src));
       img.src = src;
     });
   }
 
+  function testImageCORS(img) {
+    // try to draw 1px into a canvas and read it to detect taint
+    return new Promise((resolve, reject) => {
+      try {
+        const c = document.createElement('canvas');
+        c.width = Math.max(1, img.naturalWidth || 1);
+        c.height = Math.max(1, img.naturalHeight || 1);
+        const ctx = c.getContext('2d');
+        ctx.drawImage(img, 0, 0);
+        try {
+          ctx.getImageData(0,0,1,1);
+          resolve(true);
+        } catch(e){ reject(e); }
+      } catch(e){ reject(e); }
+    });
+  }
+
+  function short(s, n=40){ if(!s) return '(none)'; return s.length>n? s.slice(0,n)+'...': s; }
+
+  // ---------- Snapshots: capturar "lo que vemos" para análisis ----------
+  // Para imágenes simples (no tiled) podemos crear snapshot directo. Para OpenSeadragon, intentamos copiar el canvas interno del drawer
+  // OBS: si los tiles provienen de servidores sin CORS la lectura de píxeles se bloqueará.
+  function captureViewerSnapshot(which, width = null, height = null) {
+    // returns HTMLCanvasElement or null
+    return new Promise((resolve) => {
+      const entry = state[which];
+      if(!entry) return resolve(null);
+
+      const viewer = entry.viewer;
+      if(!viewer) return resolve(null);
+
+      // Case 1: viewer has a drawer canvas accessible (OpenSeadragon)
+      try {
+        // Some versions give viewer.drawer.canvas or viewer.drawer.context; check
+        const drawerCanvas = viewer.drawer && (viewer.drawer.canvas || viewer.drawer.context && viewer.drawer.context.canvas);
+        if(drawerCanvas) {
+          // draw drawerCanvas into a new canvas at desired size
+          const src = drawerCanvas;
+          const outW = width || src.clientWidth || src.width || src.offsetWidth || 800;
+          const outH = height || src.clientHeight || src.height || src.offsetHeight || 600;
+          const c = document.createElement('canvas');
+          c.width = outW; c.height = outH;
+          const ctx = c.getContext('2d');
+          // we will try drawImage directly. This may throw if drawerCanvas is tainted.
+          try {
+            ctx.drawImage(src, 0, 0, outW, outH);
+            // mark as not tainted if we could read
+            try { ctx.getImageData(0,0,1,1); entry.tainted = false; } catch(e){ entry.tainted = true; }
+            entry.lastSnapshot = c;
+            return resolve(c);
+          } catch(e){
+            // cannot read due to CORS; fallback below
+            console.warn('drawerCanvas drawImage failed (likely CORS):', e);
+          }
+        }
+      } catch(e){ /* ignore */ }
+
+      // Case 2: viewer has a tileSource we can fetch and stitch programmatically for the current viewport (best effort)
+      // We'll compute visible tile indexes at the current zoom level and request tiles individually via tile URL pattern.
+      // This only works if we have access to the tile URL template (state[which].tileSource) and if it is an XYZ/DZI/IIIF pattern.
+      const ts = entry.tileSource;
+      if(!ts) {
+        // maybe viewer loaded single image: use the image element if available
+        try {
+          const img = viewer.source && (viewer.source.url || viewer.source.src) ? viewer.source : null;
+          // fallback: try to get the <img> used by the viewer world
+          if(viewer.world && viewer.world.getItemAt && viewer.world.getItemAt(0) && viewer.world.getItemAt(0).getContent) {
+            const content = viewer.world.getItemAt(0).getContent();
+            if(content && content.tagName === 'IMG') {
+              const c = document.createElement('canvas');
+              const outW = width || content.naturalWidth || content.width || 800;
+              const outH = height || content.naturalHeight || content.height || 600;
+              c.width = outW; c.height = outH;
+              const ctx = c.getContext('2d');
+              try { ctx.drawImage(content, 0, 0, outW, outH); entry.lastSnapshot = c; return resolve(c); } catch(e){ entry.tainted = true; console.warn('drawImage content failed', e); return resolve(null); }
+            }
+          }
+        } catch(e){ /* ignore */ }
+        return resolve(null);
+      }
+
+      // If we have a tileSource descriptor that has getTileUrl, try to stitch visible tiles.
+      try {
+        // compute visible bounds in image coordinates
+        const viewport = viewer.viewport;
+        const image1 = viewer.world.getItemAt(0);
+        if(!viewport || !image1) return resolve(null);
+
+        // We'll ask OpenSeadragon for bounds in image coordinates and compute tiles at the current level
+        const container = viewer.container;
+        const containerW = container.clientWidth;
+        const containerH = container.clientHeight;
+
+        // Level selection: approximate by viewport.getZoom() and image1.source.dimensions
+        const zoom = viewport.getZoom(true); // viewport zoom
+        // OpenSeadragon coordinate transforms are tricky; we will approximate by using the viewer.source.tileSize and current viewport.zoom
+        // Determine a level that maps a tile size to ~256px on screen:
+        const tileSize = (ts.tileSize || 256);
+        // guess level based on image width and container size if possible
+        const imgWidth = image1.source && image1.source.width ? image1.source.width : (ts.width || 10000);
+        const ratio = containerW / imgWidth;
+        // choose level such that (imgWidth / (2^level)) ~ containerW (approx)
+        let level = 0;
+        if(ts.maxLevel) level = ts.maxLevel;
+        else {
+          // heuristic: level = ceil(log2(imgWidth / containerW))
+          try {
+            level = Math.max(0, Math.ceil(Math.log2((imgWidth||1) / (containerW||1))));
+          } catch(e){ level = 0; }
+        }
+
+        // Compute a grid of tiles that cover the viewport. We'll request them and draw into a canvas sized containerW x containerH
+        const tileDim = tileSize;
+        const cols = Math.ceil(containerW / tileDim) + 2;
+        const rows = Math.ceil(containerH / tileDim) + 2;
+        // approximate starting tile indices using viewer.viewport center and conversion to image pixels:
+        const centerPoint = viewport.getCenter(true);
+        const imageCoordsCenter = image1.imageToViewportCoordinates(centerPoint);
+        // fallback: start at 0
+        let startX = -Math.floor(cols/2), startY = -Math.floor(rows/2);
+
+        // We'll fallback to simply request a small set of tiles around center indices to assemble.
+        // Build canvas and run requests in parallel
+        const outCanvas = document.createElement('canvas');
+        outCanvas.width = width || containerW;
+        outCanvas.height = height || containerH;
+        const octx = outCanvas.getContext('2d');
+
+        // Build list of tile coords to request - simple grid centered
+        const tilePromises = [];
+        const midX = Math.floor(cols/2), midY = Math.floor(rows/2);
+        // We'll assume tile indices range from 0..(2^level - 1) on each axis (typical web mercator tiling)
+        const maxIndex = Math.pow(2, level) - 1;
+        for(let r=0; r<rows; r++){
+          for(let c=0; c<cols; c++){
+            const tx = (midX - Math.floor(cols/2) + c);
+            const ty = (midY - Math.floor(rows/2) + r);
+            // Build a placeholder URL via ts.getTileUrl if available
+            let urlTile = null;
+            if(typeof ts.getTileUrl === 'function') {
+              urlTile = ts.getTileUrl(level, tx, ty);
+            } else if(typeof ts === 'string') {
+              // maybe ts is a template
+              urlTile = ts.replace('{z}', level).replace('{x}', tx).replace('{y}', ty);
+            } else if(ts.src) {
+              urlTile = ts.src.replace('{z}', level).replace('{x}', tx).replace('{y}', ty);
+            }
+            if(!urlTile) continue;
+            // request image
+            tilePromises.push(
+              (async function(ix,iy,px,py){
+                try {
+                  const img = await loadHTMLImage(urlTile);
+                  // draw centered by cell
+                  const cx = px;
+                  const cy = py;
+                  octx.drawImage(img, cx, cy, tileDim, tileDim);
+                } catch(e){
+                  // ignore tile failures
+                }
+              })(tx,ty,(c*tileDim)- (cols*tileDim/2) + (containerW/2), (r*tileDim) - (rows*tileDim/2) + (containerH/2))
+            );
+          }
+        }
+
+        // await all tile draws (best effort)
+        Promise.allSettled(tilePromises).then(()=>{ entry.lastSnapshot = outCanvas; try { octx.getImageData(0,0,1,1); entry.tainted = false; } catch(e){ entry.tainted = true; } resolve(outCanvas); });
+
+      } catch(err){ console.warn('captureViewerSnapshot failed', err); resolve(null); }
+    });
+  }
+
+  // ---------- Worker: heavy image processing (Sobel / differences) ----------
+  // We'll create a web worker from a blob so the whole project is self-contained.
+  // The worker expects messages:
+  // { cmd: 'sobel', width, height, data (Uint8ClampedArray), strength }
+  // { cmd: 'diff', width, height, dataA, dataB, threshold, gain }
+  //
+  // It responds with { cmd:'sobelResult', width, height, data } where data is Uint8ClampedArray (RGBA)
+  const WORKER_BLOB = `
+  self.addEventListener('message', function(e){
+    const msg = e.data;
+    if(!msg || !msg.cmd) return;
+    // tiny utility: clamp
+    function clamp(v,a,b){ return Math.max(a, Math.min(b, v)); }
+    if(msg.cmd === 'sobel'){
+      const w = msg.width, h = msg.height, strength = msg.strength || 1;
+      const src = msg.data; // Uint8ClampedArray RGBA
+      const out = new Uint8ClampedArray(w*h*4);
+      // convolution kernels
+      const gx = [-1,0,1, -2,0,2, -1,0,1];
+      const gy = [-1,-2,-1, 0,0,0, 1,2,1];
+      // convert to grayscale luminance to simplify
+      for(let y=1;y<h-1;y++){
+        for(let x=1;x<w-1;x++){
+          let k=0, px=0, py=0;
+          for(let j=-1;j<=1;j++){
+            for(let i=-1;i<=1;i++){
+              const idx = ((y+j)*w + (x+i))*4;
+              const r = src[idx], g = src[idx+1], b = src[idx+2];
+              const lum = (r + g + b) / 3;
+              px += gx[k] * lum;
+              py += gy[k] * lum;
+              k++;
+            }
+          }
+          let mag = Math.sqrt(px*px + py*py) * strength;
+          if(mag>255) mag = 255;
+          const oidx = (y*w + x)*4;
+          out[oidx] = 20; out[oidx+1] = 255; out[oidx+2] = 255; out[oidx+3] = mag;
+        }
+      }
+      self.postMessage({ cmd:'sobelResult', width:w, height:h, data:out }, [out.buffer]);
+    } else if(msg.cmd === 'diff'){
+      const w = msg.width, h = msg.height;
+      const a = msg.dataA, b = msg.dataB;
+      const threshold = msg.threshold || 24;
+      const gain = msg.gain || 2.5;
+      const out = new Uint8ClampedArray(w*h*4);
+      for(let i=0;i<a.length;i+=4){
+        const la = (a[i] + a[i+1] + a[i+2]) / 3;
+        const lb = (b[i] + b[i+1] + b[i+2]) / 3;
+        const diff = Math.abs(la - lb) * gain;
+        const m = Math.max(0, diff - threshold) / (255 - threshold);
+        const r = Math.min(255, Math.max(0, (m-0.5)*2*255));
+        const g = Math.min(255, Math.max(0, (1-Math.abs(m-0.5)*2)*255));
+        const bl = Math.min(255, Math.max(0, (0.5-m)*2*255));
+        const idx = i;
+        out[idx] = r; out[idx+1] = g; out[idx+2] = bl; out[idx+3] = Math.min(230, Math.floor(m*255));
+      }
+      self.postMessage({ cmd:'diffResult', width:w, height:h, data:out }, [out.buffer]);
+    }
+  }, false);
+  `;
+  const workerBlobURL = URL.createObjectURL(new Blob([WORKER_BLOB], { type: 'application/javascript' }));
+  const imageWorker = new Worker(workerBlobURL);
+
+  // helper to run worker tasks and await response
+  function runWorkerTask(task) {
+    return new Promise((resolve, reject) => {
+      const onMessage = (e) => {
+        const d = e.data;
+        imageWorker.removeEventListener('message', onMessage);
+        resolve(d);
+      };
+      imageWorker.addEventListener('message', onMessage);
+      imageWorker.postMessage(task);
+      // TODO: add timeout if desired
+    });
+  }
+
+  // ---------- Sobel / Diff runner (orchestrator) ----------
+  async function computeSobel(canvas, strength=1) {
+    if(!canvas) return null;
+    const ctx = canvas.getContext('2d');
+    try{
+      const imgd = ctx.getImageData(0,0,canvas.width, canvas.height);
+      const data = imgd.data;
+      const res = await runWorkerTask({ cmd:'sobel', width: canvas.width, height: canvas.height, data: data, strength: strength });
+      if(!res) return null;
+      const outCanvas = document.createElement('canvas'); outCanvas.width = res.width; outCanvas.height = res.height;
+      const outCtx = outCanvas.getContext('2d');
+      const id = new ImageData(new Uint8ClampedArray(res.data), res.width, res.height);
+      outCtx.putImageData(id, 0, 0);
+      return outCanvas;
+    }catch(e){ console.warn('computeSobel failed', e); return null; }
+  }
+
+  async function computeDiff(canvasA, canvasB, threshold=24, gain=2.5) {
+    if(!canvasA || !canvasB) return null;
+    // ensure same size (we will use min dims)
+    const w = Math.min(canvasA.width, canvasB.width);
+    const h = Math.min(canvasA.height, canvasB.height);
+    const ctxA = canvasA.getContext('2d'), ctxB = canvasB.getContext('2d');
+    try {
+      const aData = ctxA.getImageData(0,0,w,h).data;
+      const bData = ctxB.getImageData(0,0,w,h).data;
+      const res = await runWorkerTask({ cmd:'diff', width:w, height:h, dataA: aData, dataB: bData, threshold: threshold, gain: gain });
+      if(!res) return null;
+      const out = document.createElement('canvas'); out.width = res.width; out.height = res.height;
+      const outCtx = out.getContext('2d');
+      const id = new ImageData(new Uint8ClampedArray(res.data), res.width, res.height);
+      outCtx.putImageData(id, 0, 0);
+      return out;
+    } catch(e) { console.warn('computeDiff failed', e); return null; }
+  }
+
+  // ---------- UI wiring and helpers ----------
+  function setToggle(id, on) {
+    const el = $(id);
+    if(!el) return;
+    el.dataset.on = on ? 'true' : 'false';
+    el.textContent = on ? (id==='toggleSync'?'ON':'ON') : 'OFF';
+    el.style.background = on ? 'linear-gradient(90deg,var(--accent),var(--accent-2))' : 'transparent';
+    el.style.color = on ? '#00111a' : 'var(--muted)';
+  }
+
+  // map input controls to state
+  function wireControls() {
+    // toggles
+    ['toggleSync','toggleGrid','toggleLoupe','toggleTileMode','toggleEdges','toggleDiff'].forEach(id=>{
+      const el = $(id);
+      if(!el) return;
+      el.addEventListener('click',(e)=>{
+        const on = el.dataset.on !== 'true';
+        el.dataset.on = on ? 'true':'false';
+        el.textContent = on ? 'ON' : 'OFF';
+        el.style.background = on ? 'linear-gradient(90deg,var(--accent),var(--accent-2))' : 'transparent';
+        // update state accordingly
+        if(id==='toggleSync') state.sync = on;
+        if(id==='toggleGrid') state.grid = on;
+        if(id==='toggleLoupe') state.loupe = on;
+        if(id==='toggleTileMode') state.tileModeAuto = on;
+        if(id==='toggleEdges') { state.edgesOn = on; prepareAnalysisCaches(); draw(); }
+        if(id==='toggleDiff') { state.diffOn = on; prepareAnalysisCaches(); draw(); }
+      });
+    });
+
+    // Sliders and inputs
+    [
+      ['edgesStrength','edgesStrength', v=>+v],
+      ['diffThreshold','diffThreshold', v=>+v],
+      ['diffGain','diffGain', v=>+v],
+      ['brightness','brightness', v=>+v],
+      ['contrast','contrast', v=>+v],
+      ['gamma','gamma', v=>+v],
+      ['overlayAlpha','overlayAlpha', v=>+v],
+      ['alphaB','overlayAlpha', v=>+v],
+      ['wipe','wipe', v=>+v],
+    ].forEach(([id, prop, fn])=>{
+      const el = $(id);
+      if(!el) return;
+      el.addEventListener('input', (ev)=>{
+        state[prop] = fn(ev.target.value);
+        if(prop==='wipe'){ $('wipeHandle') && ($('wipeHandle').style.left = (state.wipe*100)+'%'); }
+        prepareAnalysisCaches();
+        draw();
+      });
+    });
+
+    // blend
+    $('blendMode').addEventListener('change', (e)=>{ state.blendMode = e.target.value; draw(); });
+
+    // buttons
+    $('btnModeSide').addEventListener('click', ()=>{ setMode('side'); });
+    $('btnModeOverlay').addEventListener('click', ()=>{ setMode('overlay'); });
+    $('btnFit').addEventListener('click', ()=>{ fitAll(); });
+    $('btn100').addEventListener('click', ()=>{ resetZoom(); });
+    $('btnExport').addEventListener('click', exportOverlayPNG);
+    $('btnHelp').addEventListener('click', ()=>{ alert('Consejos:\n• Usa Alt para activar la lupa.\n• Si las herramientas de análisis no funcionan, es muy probable que las imágenes no permitan CORS. Carga localmente o habilita CORS en el servidor de tiles.\n• Para gigapíxeles usa IIIF o DZI si es posible.'); });
+
+    $('btnZoomIn').addEventListener('click', ()=>{ zoomBy(1.2); });
+    $('btnZoomOut').addEventListener('click', ()=>{ zoomBy(1/1.2); });
+
+    $('btnLoadInputs').addEventListener('click', async ()=>{
+      const ua = $('urlA').value.trim(); const ub = $('urlB').value.trim();
+      const fA = $('fileA').files?.[0]; const fB = $('fileB').files?.[0];
+      try {
+        if(fA) {
+          const data = await fileToDataURL(fA);
+          await setImageFromURL('A', data);
+        } else if(ua) {
+          await setImageFromURL('A', ua);
+        }
+        if(fB) {
+          const data = await fileToDataURL(fB);
+          await setImageFromURL('B', data);
+        } else if(ub) {
+          await setImageFromURL('B', ub);
+        }
+        fitAll();
+      } catch(e) {
+        alert('Error cargando: ' + e.message);
+      }
+    });
+  }
+
+  function resetZoom() {
+    if(state.mode==='side') {
+      if(state.A.viewer) state.A.viewer.viewport.zoomTo(1);
+      if(state.B.viewer) state.B.viewer.viewport.zoomTo(1);
+    } else {
+      // nothing specific
+    }
+    prepareAnalysisCaches(); draw();
+  }
+
+  function zoomBy(factor) {
+    if(state.mode==='side') {
+      if(state.A.viewer) state.A.viewer.viewport.zoomBy(factor);
+      if(state.sync && state.B.viewer) state.B.viewer.viewport.zoomTo(state.A.viewer.viewport.getZoom());
+      if(state.B.viewer && !state.sync) state.B.viewer.viewport.zoomBy(factor);
+    } else {
+      // overlay: no separate viewer zoom (we use canvas scaling)
+      state.O.zoom *= factor; draw();
+    }
+  }
+
+  // ---------- IO helpers ----------
   function fileToDataURL(file){
     return new Promise((resolve,reject)=>{
       const reader = new FileReader();
@@ -352,560 +907,412 @@
     });
   }
 
-  // ============== Estado global del visor ===============
-  const state = {
-    mode: 'side', // 'side' | 'overlay'
-    sync: true,
-    grid: false,
-    loupe: true,
-    brightness: 1,
-    contrast: 1,
-    gamma: 1,
-    overlayAlpha: 0.65,
-    blendMode: 'normal',
-    wipe: 0.5,
-    edgesOn: false,
-    edgesStrength: 1,
-    edgesAlpha: 0.75,
-    diffOn: false,
-    diffThreshold: 24,
-    diffGain: 2.5,
-    // Visores
-    A: { img: null, zoom: 1, x: 0, y: 0, edges: null, edgesReady:false, tainted:false },
-    B: { img: null, zoom: 1, x: 0, y: 0, edges: null, edgesReady:false, tainted:false },
-    O: { zoom: 1, x: 0, y: 0, diff: null, diffReady:false }
-  };
-
-  // Canvases y contextos
-  const cvsA = document.getElementById('canvasA');
-  const ctxA = cvsA.getContext('2d');
-  const cvsB = document.getElementById('canvasB');
-  const ctxB = cvsB.getContext('2d');
-  const cvsO = document.getElementById('canvasOverlay');
-  const ctxO = cvsO.getContext('2d');
-
-  const vpA = document.getElementById('vpA');
-  const vpB = document.getElementById('vpB');
-  const vpO = document.getElementById('vpOverlay');
-  const loupeA = document.getElementById('loupeA');
-  const loupeB = document.getElementById('loupeB');
-  const loupeO = document.getElementById('loupeO');
-  const wipeHandle = document.getElementById('wipeHandle');
-
-  // =================== Layout / Resize ===================
-  function resizeCanvasToParent(canvas){
-    const parent = canvas.parentElement;
-    const dpr = window.devicePixelRatio || 1;
-    const w = parent.clientWidth;
-    const h = Math.max(320, Math.floor(w * 0.65)); // relación razonable
-    canvas.width = Math.floor(w * dpr);
-    canvas.height = Math.floor(h * dpr);
-    canvas.style.width = w+'px';
-    canvas.style.height = h+'px';
-    const ctx = canvas.getContext('2d');
-    ctx.setTransform(dpr,0,0,dpr,0,0);
+  // ---------- setImageFromURL: decide tile vs image and load ----------
+  async function setImageFromURL(which, url) {
+    // which: 'A' or 'B'
+    if(!url) throw new Error('URL vacía');
+    // initialize viewer if needed
+    if(!state[which].viewer) throw new Error('Viewer no inicializado: ' + which);
+    return await loadSourceIntoViewer(which, url);
   }
 
-  function resizeAll(){
-    [cvsA,cvsB,cvsO].forEach(c=> c && resizeCanvasToParent(c));
-    draw();
-  }
-  window.addEventListener('resize', resizeAll);
+  // ---------- prepareAnalysisCaches ----------
+  // Intenta crear snapshots (canvas) para A y B en la resolución del overlay canvas, y calcula bordes/diff si corresponde.
+  async function prepareAnalysisCaches() {
+    // only prepare if overlay canvas exists
+    const cvs = $('canvasOverlay');
+    if(!cvs) return;
+    // ensure canvases sized correctly
+    resizeOverlayCanvas();
 
-  // ================ Dibujado común =======================
-  function applyVisualCtx(ctx){
-    // Brillo/contraste/gamma se aplican vía shader CPU simple al final cuando haga falta leer píxel.
-    // Para previsualización rápida, usamos filtros de canvas como aproximación.
-    const b = state.brightness; const c = state.contrast; const g = state.gamma;
-    ctx.filter = `brightness(${b}) contrast(${c}) saturate(1) grayscale(0)`; // gamma no está en filter; lo aplicamos en CPU cuando se analice
-  }
+    // Capture snapshots for A and B using captureViewerSnapshot
+    const aSnap = await captureViewerSnapshot('A', cvs.width, cvs.height);
+    const bSnap = await captureViewerSnapshot('B', cvs.width, cvs.height);
+    state.A.lastSnapshot = aSnap || state.A.lastSnapshot;
+    state.B.lastSnapshot = bSnap || state.B.lastSnapshot;
 
-  function drawGrid(ctx, w, h, step){
-    ctx.save();
-    ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--grid-color') || 'rgba(148,163,184,.25)';
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    for(let x=0; x<=w; x+=step){ ctx.moveTo(x+0.5,0); ctx.lineTo(x+0.5,h); }
-    for(let y=0; y<=h; y+=step){ ctx.moveTo(0,y+0.5); ctx.lineTo(w,y+0.5); }
-    ctx.stroke();
-    ctx.restore();
-  }
-
-  function drawEdgesOverlay(ctx, cache, alpha=0.75){
-    if(!cache) return;
-    ctx.save();
-    ctx.globalAlpha = alpha;
-    ctx.drawImage(cache, 0, 0, ctx.canvas.width, ctx.canvas.height);
-    ctx.restore();
-  }
-
-  function computeGamma(v, g){
-    return Math.pow(v, 1/g); // gamma simple
-  }
-
-  // ============= Sobel (bordes) =============
-  function sobelFromCanvas(sourceCanvas, strength=1){
-    // Devuelve un canvas del mismo tamaño con un mapa de bordes coloreado cian
-    const w = sourceCanvas.width, h = sourceCanvas.height;
-    const sctx = sourceCanvas.getContext('2d');
-    let src;
-    try{
-      src = sctx.getImageData(0,0,w,h);
-    }catch(e){
-      return null; // tainted
-    }
-    const out = new OffscreenCanvas(w,h); // si no soporta, fallback a canvas normal
-    const ctx = out.getContext('2d');
-    const dst = ctx.createImageData(w,h);
-
-    // Kernels Sobel
-    const gx = [-1,0,1, -2,0,2, -1,0,1];
-    const gy = [-1,-2,-1, 0,0,0, 1,2,1];
-
-    const d = src.data, o = dst.data;
-    const gamma = state.gamma;
-
-    for(let y=1; y<h-1; y++){
-      for(let x=1; x<w-1; x++){
-        let i = (y*w + x) * 4;
-        // luminancia simple (promedio)
-        const idx = (yy,xx)=> ((yy)*w + (xx)) * 4;
-        let px = 0, py = 0, k=0;
-        for(let j=-1;j<=1;j++){
-          for(let i2=-1;i2<=1;i2++){
-            const p = idx(y+j, x+i2);
-            const lum = computeGamma((d[p]+d[p+1]+d[p+2]) / (3*255), gamma);
-            const val = lum * 255;
-            px += gx[k]*val; py += gy[k]*val; k++;
-          }
-        }
-        let mag = Math.sqrt(px*px + py*py) * strength;
-        if(mag>255) mag=255;
-        o[i] = 20;       // rojo bajo
-        o[i+1] = 255;    // verde alto → cian con azul
-        o[i+2] = 255;    // azul alto
-        o[i+3] = mag;    // alpha proporcional a magnitud
-      }
-    }
-    ctx.putImageData(dst,0,0);
-    // Convertimos a HTMLCanvasElement si OffscreenCanvas
-    if(out.convertToBlob){
-      // Crear canvas visible temporal
-      const cnv = document.createElement('canvas');
-      cnv.width = w; cnv.height = h;
-      cnv.getContext('2d').drawImage(out,0,0);
-      return cnv;
-    }
-    return out;
-  }
-
-  // ============= Diferencias (A vs B) =============
-  function differenceHeatmapCanvas(cnvA, cnvB, threshold=24, gain=2.5){
-    const w = Math.min(cnvA.width, cnvB.width);
-    const h = Math.min(cnvA.height, cnvB.height);
-    const aCtx = cnvA.getContext('2d');
-    const bCtx = cnvB.getContext('2d');
-    let a, b;
-    try{
-      a = aCtx.getImageData(0,0,w,h);
-      b = bCtx.getImageData(0,0,w,h);
-    }catch(e){ return null; }
-
-    const out = new OffscreenCanvas(w,h); const octx = out.getContext('2d');
-    const dst = octx.createImageData(w,h);
-    const ad = a.data, bd = b.data, od = dst.data;
-    const gamma = state.gamma;
-
-    for(let i=0;i<ad.length;i+=4){
-      const la = computeGamma((ad[i]+ad[i+1]+ad[i+2])/(3*255), gamma);
-      const lb = computeGamma((bd[i]+bd[i+1]+bd[i+2])/(3*255), gamma);
-      const diff = Math.abs(la - lb) * 255 * gain;
-      // Umbral suave
-      const m = Math.max(0, diff - threshold) / (255 - threshold);
-      // Mapa de calor sencillo: azul→cian→verde→amarillo→rojo
-      const r = Math.min(255, Math.max(0, (m-0.5)*2*255));
-      const g = Math.min(255, Math.max(0, (1-Math.abs(m-0.5)*2)*255));
-      const bl= Math.min(255, Math.max(0, (0.5-m)*2*255));
-      od[i] = r; od[i+1]=g; od[i+2]=bl; od[i+3] = Math.min(200, (m*255));
-    }
-    octx.putImageData(dst,0,0);
-    if(out.convertToBlob){
-      const cnv = document.createElement('canvas');
-      cnv.width=w; cnv.height=h; cnv.getContext('2d').drawImage(out,0,0);
-      return cnv;
-    }
-    return out;
-  }
-
-  // ============ Render de cada visor ============
-  function clear(ctx){ ctx.save(); ctx.setTransform(1,0,0,1,0,0); ctx.clearRect(0,0,ctx.canvas.width,ctx.canvas.height); ctx.restore(); }
-
-  function renderViewport(ctx, view, withGrid){
-    clear(ctx);
-    if(!view.img) return;
-    applyVisualCtx(ctx);
-    const {img, zoom, x, y} = view;
-    const cw = ctx.canvas.clientWidth; const ch = ctx.canvas.clientHeight;
-    const iw = img.naturalWidth; const ih = img.naturalHeight;
-
-    // Centro del canvas
-    ctx.save();
-    ctx.translate(cw/2 + x, ch/2 + y);
-    ctx.scale(zoom, zoom);
-    ctx.drawImage(img, -iw/2, -ih/2);
-    ctx.restore();
-
-    if(withGrid && state.grid){ drawGrid(ctx, ctx.canvas.clientWidth, ctx.canvas.clientHeight, 80); }
-  }
-
-  function renderOverlay(ctx){
-    clear(ctx);
-    if(!state.A.img || !state.B.img) return;
-    applyVisualCtx(ctx);
-    const cw = ctx.canvas.clientWidth; const ch = ctx.canvas.clientHeight;
-
-    // Transform común
-    ctx.save();
-    ctx.translate(cw/2 + state.O.x, ch/2 + state.O.y);
-    ctx.scale(state.O.zoom, state.O.zoom);
-
-    const ia = state.A.img, ib = state.B.img;
-    const iw = Math.max(ia.naturalWidth, ib.naturalWidth);
-    const ih = Math.max(ia.naturalHeight, ib.naturalHeight);
-
-    // Dibuja A completa
-    ctx.globalCompositeOperation = 'source-over';
-    ctx.drawImage(ia, -ia.naturalWidth/2, -ia.naturalHeight/2);
-
-    // Ajuste de mezcla para B
-    ctx.globalCompositeOperation = state.blendMode;
-    ctx.globalAlpha = state.overlayAlpha;
-
-    // Wipe: recorte por proporción horizontal
-    const cut = Math.floor((state.wipe) * cw);
-    ctx.save();
-    // Recorte en coordenadas de pantalla: usamos un path en espacio de pantalla
-    ctx.setTransform(1,0,0,1,0,0);
-    ctx.beginPath(); ctx.rect(cut, 0, cw-cut, ch); ctx.clip();
-    // Volvemos a la transform
-    ctx.translate(cw/2 + state.O.x, ch/2 + state.O.y); ctx.scale(state.O.zoom, state.O.zoom);
-    ctx.drawImage(ib, -ib.naturalWidth/2, -ib.naturalHeight/2);
-    ctx.restore();
-
-    ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
-    ctx.restore();
-
-    // Rejilla en overlay
-    if(state.grid){ drawGrid(ctx, cw, ch, 80); }
-
-    // Bordes en overlay (se dibujan encima)
-    if(state.edgesOn){
-      const cacheA = state.A.edgesCacheOverlay; const cacheB = state.B.edgesCacheOverlay;
-      if(cacheA && cacheB){
-        // Dibujar A a la izquierda, B a la derecha, con alpha configurable
-        ctx.save();
-        ctx.globalAlpha = state.edgesAlpha;
-        // A
-        ctx.drawImage(cacheA, 0, 0, cw*state.wipe, ch, 0,0, cw*state.wipe, ch);
-        // B
-        ctx.drawImage(cacheB, cw*state.wipe, 0, cw*(1-state.wipe), ch, cw*state.wipe,0, cw*(1-state.wipe), ch);
-        ctx.restore();
-      }
-    }
-
-    // Diferencias (heatmap)
-    if(state.diffOn && state.O.diff){
-      ctx.save();
-      ctx.globalAlpha = 0.75;
-      ctx.drawImage(state.O.diff, 0, 0, cw, ch);
-      ctx.restore();
-    }
-
-    // Actualizar handle visual
-    document.getElementById('wipeHandle').style.left = (state.wipe*100)+'%';
-  }
-
-  function draw(){
-    if(state.mode==='side'){
-      renderViewport(ctxA, state.A, true);
-      renderViewport(ctxB, state.B, true);
-      document.getElementById('zoomReadout').textContent = Math.round((state.A.zoom)*100)+'%';
-    }else{
-      renderOverlay(ctxO);
-      document.getElementById('zoomReadout').textContent = Math.round((state.O.zoom)*100)+'%';
-    }
-  }
-
-  // ============= Interacción (zoom/pan) =============
-  function attachNavHandlers(viewportEl, canvas, viewKey){
-    let dragging = false; let lastX=0, lastY=0; let pointers = new Map();
-
-    function getView(){ return viewKey==='A'? state.A : viewKey==='B'? state.B : state.O; }
-
-    viewportEl.addEventListener('pointerdown', (e)=>{
-      dragging = true; lastX = e.clientX; lastY = e.clientY; canvas.setPointerCapture(e.pointerId);
-      pointers.set(e.pointerId, {x:e.clientX, y:e.clientY});
-    });
-    viewportEl.addEventListener('pointerup', (e)=>{ dragging=false; pointers.delete(e.pointerId); canvas.releasePointerCapture?.(e.pointerId); });
-    viewportEl.addEventListener('pointercancel', (e)=>{ dragging=false; pointers.delete(e.pointerId); });
-
-    viewportEl.addEventListener('pointermove', (e)=>{
-      const v = getView();
-      if(pointers.size===2){
-        // Pinch to zoom
-        const pts = [...pointers.values()];
-        const prev = Math.hypot(pts[0].x-pts[1].x, pts[0].y-pts[1].y);
-        pointers.set(e.pointerId, {x:e.clientX, y:e.clientY});
-        const pts2 = [...pointers.values()];
-        const now = Math.hypot(pts2[0].x-pts2[1].x, pts2[0].y-pts2[1].y);
-        const ratio = now/prev;
-        v.zoom = clamp(v.zoom * ratio, 0.1, 20);
-        draw();
-        return;
-      }
-      if(!dragging) return;
-      const dx = e.clientX - lastX; const dy = e.clientY - lastY; lastX = e.clientX; lastY = e.clientY;
-      v.x += dx; v.y += dy;
-      if(state.sync && (viewKey==='A'||viewKey==='B') && state.mode==='side'){
-        const other = viewKey==='A'? state.B : state.A; other.x += dx; other.y += dy;
-      }
-      draw();
-    });
-
-    viewportEl.addEventListener('wheel', (e)=>{
-      e.preventDefault();
-      const v = getView();
-      const factor = e.deltaY>0? 0.9 : 1.1;
-      const prevZoom = v.zoom;
-      v.zoom = clamp(v.zoom * factor, 0.1, 20);
-      // Zoom hacia el puntero: ajusta offset para mantener punto
-      const rect = canvas.getBoundingClientRect();
-      const mx = e.clientX - rect.left - rect.width/2 - v.x;
-      const my = e.clientY - rect.top - rect.height/2 - v.y;
-      v.x -= mx*(v.zoom/prevZoom - 1);
-      v.y -= my*(v.zoom/prevZoom - 1);
-      if(state.sync && (viewKey==='A'||viewKey==='B') && state.mode==='side'){
-        const other = viewKey==='A'? state.B : state.A;
-        other.zoom = v.zoom; other.x = v.x; other.y = v.y;
-      }
-      draw();
-    }, {passive:false});
-
-    // Lupa con Alt
-    viewportEl.addEventListener('mousemove', (e)=>{
-      if(!state.loupe || !e.altKey) return hideLoupe(viewKey);
-      const loupe = viewKey==='A'? loupeA : viewKey==='B'? loupeB : loupeO;
-      showLoupe(loupe, canvas, e, getView(), viewKey);
-    });
-    viewportEl.addEventListener('mouseleave', ()=> hideLoupe(viewKey));
-  }
-
-  function clamp(v, a, b){ return Math.min(b, Math.max(a, v)); }
-
-  function showLoupe(loupe, canvas, e, view, key){
-    if(!loupe) return;
-    const rect = canvas.getBoundingClientRect();
-    loupe.style.display = 'block';
-    loupe.style.left = (e.clientX - rect.left - 80)+'px';
-    loupe.style.top  = (e.clientY - rect.top - 80)+'px';
-
-    // Dibujar dentro de la lupa
-    const cnv = loupe._cnv || (loupe._cnv = document.createElement('canvas'));
-    cnv.width = 160; cnv.height = 160;
-    const lctx = cnv.getContext('2d');
-    lctx.clearRect(0,0,160,160);
-
-    if(key==='O'){
-      // Render overlay en miniatura zoom x2
-      const backup = { ...state.O };
-      const zx = view.zoom; const ox = view.x; const oy=view.y;
-      state.O.zoom = Math.min(20, zx*2); state.O.x = ox - (e.offsetX - canvas.clientWidth/2 - ox)/2; state.O.y = oy - (e.offsetY - canvas.clientHeight/2 - oy)/2;
-      const temp = document.createElement('canvas'); temp.width=160; temp.height=160; temp.getContext('2d').scale(160/canvas.clientWidth, 160/canvas.clientHeight);
-      const prev = cvsO; const prevCtx = ctxO;
-      const ctxTemp = temp.getContext('2d');
-      // Renderizamos sobre temp usando la función de overlay adaptada (rápido)
-      const savedCanvas = ctxO.canvas; ctxO.canvas = temp; renderOverlay(ctxTemp); ctxO.canvas = savedCanvas;
-      lctx.drawImage(temp,0,0);
-      state.O = backup;
+    // edges
+    if(state.edgesOn) {
+      // use worker to compute sobel for both
+      if(state.A.lastSnapshot && !state.A.tainted) {
+        computeSobel(state.A.lastSnapshot, state.edgesStrength).then(r=>{ state.A.edgesCache = r; draw(); });
+      } else state.A.edgesCache = null;
+      if(state.B.lastSnapshot && !state.B.tainted) {
+        computeSobel(state.B.lastSnapshot, state.edgesStrength).then(r=>{ state.B.edgesCache = r; draw(); });
+      } else state.B.edgesCache = null;
     } else {
-      const viewImg = key==='A'? state.A.img : state.B.img;
-      if(!viewImg) return;
-      lctx.save();
-      lctx.translate(80,80); lctx.scale(view.zoom*2, view.zoom*2);
-      // Centro relativo bajo el cursor
-      const mx = e.offsetX - canvas.clientWidth/2 - view.x;
-      const my = e.offsetY - canvas.clientHeight/2 - view.y;
-      lctx.translate(-mx, -my);
-      lctx.drawImage(viewImg, -viewImg.naturalWidth/2, -viewImg.naturalHeight/2);
-      lctx.restore();
-    }
-    loupe.style.background = `url(${cnv.toDataURL()}) center/cover no-repeat`;
-  }
-  function hideLoupe(key){ const l = key==='A'? loupeA : key==='B'? loupeB : loupeO; if(l) l.style.display='none'; }
-
-  // ============= UI wiring =============
-  document.getElementById('btnModeSide').addEventListener('click',()=>{ state.mode='side'; document.getElementById('modeSide').classList.remove('hidden'); document.getElementById('modeOverlay').classList.add('hidden'); setActiveMode(true); draw(); });
-  document.getElementById('btnModeOverlay').addEventListener('click',()=>{ state.mode='overlay'; document.getElementById('modeSide').classList.add('hidden'); document.getElementById('modeOverlay').classList.remove('hidden'); setActiveMode(false); draw(); });
-  function setActiveMode(side){ document.getElementById('btnModeSide').dataset.active = side; document.getElementById('btnModeOverlay').dataset.active = !side; }
-
-  // Toggles
-  bindToggle('toggleSync', (on)=> state.sync = on);
-  bindToggle('toggleGrid', (on)=> { state.grid = on; draw(); });
-  bindToggle('toggleLoupe', (on)=> state.loupe = on);
-  bindToggle('toggleEdges', (on)=> { state.edgesOn = on; draw(); });
-  bindToggle('toggleDiff', (on)=> { state.diffOn = on; draw(); });
-  function bindToggle(id, cb){ const el = document.getElementById(id); el.addEventListener('click',()=>{ const on = el.getAttribute('data-on')!=='true'; el.setAttribute('data-on', on); cb(on); }); }
-
-  // Sliders / inputs
-  const mapInput = (id, prop, fn)=> document.getElementById(id).addEventListener('input', (e)=>{ state[prop] = fn? fn(e.target.value) : +e.target.value; if(prop==='wipe'){ document.getElementById('overlayTip').style.display='block'; setTimeout(()=> document.getElementById('overlayTip').style.display='none', 900); } draw(); });
-  mapInput('edgesStrength','edgesStrength', v=>+v);
-  mapInput('edgesAlpha','edgesAlpha', v=>+v);
-  mapInput('diffThreshold','diffThreshold', v=>+v);
-  mapInput('diffGain','diffGain', v=>+v);
-  mapInput('brightness','brightness', v=>+v);
-  mapInput('contrast','contrast', v=>+v);
-  mapInput('gamma','gamma', v=>+v);
-  mapInput('overlayAlpha','overlayAlpha', v=>+v);
-  mapInput('alphaB','overlayAlpha', v=>+v);
-  mapInput('wipe','wipe', v=>+v);
-  document.getElementById('blendMode').addEventListener('change', (e)=>{ state.blendMode = e.target.value; draw(); });
-
-  document.getElementById('btnFit').addEventListener('click', fitAll);
-  document.getElementById('btn100').addEventListener('click', ()=>{ if(state.mode==='side'){ state.A.zoom=state.B.zoom=1; state.A.x=state.B.x=0; state.A.y=state.B.y=0; } else { state.O.zoom=1; state.O.x=state.O.y=0; } draw(); });
-
-  document.getElementById('btnZoomIn').addEventListener('click', ()=>{ if(state.mode==='side'){ state.A.zoom*=1.2; if(state.sync) state.B.zoom=state.A.zoom; } else { state.O.zoom*=1.2; } draw(); });
-  document.getElementById('btnZoomOut').addEventListener('click', ()=>{ if(state.mode==='side'){ state.A.zoom/=1.2; if(state.sync) state.B.zoom=state.A.zoom; } else { state.O.zoom/=1.2; } draw(); });
-
-  // Presets
-  document.getElementById('preset').addEventListener('change', async (e)=>{
-    const v = e.target.value; if(!v) return;
-    let a,b;
-    if(v==='full2025_vs_full2016'){ a = NASA.full2025; b = NASA.full2016; }
-    if(v==='mosaic2018_vs_full2025'){ a = NASA.mosaic2018; b = NASA.full2025; }
-    if(v==='tycho_oblicua_vs_nadir'){ a = NASA.tychoOblique; b = NASA.tychoNadir; }
-    await loadPair(a,b);
-    fitAll();
-  });
-
-  // Cargar desde inputs URL o archivos
-  document.getElementById('btnLoadInputs').addEventListener('click', async ()=>{
-    const ua = document.getElementById('urlA').value.trim();
-    const ub = document.getElementById('urlB').value.trim();
-    if(ua) await setImageFromURL('A', ua);
-    if(ub) await setImageFromURL('B', ub);
-    fitAll();
-  });
-
-  document.getElementById('fileA').addEventListener('change', async (e)=>{ const f = e.target.files?.[0]; if(f){ const url = await fileToDataURL(f); await setImageFromURL('A', url); fitAll(); } });
-  document.getElementById('fileB').addEventListener('change', async (e)=>{ const f = e.target.files?.[0]; if(f){ const url = await fileToDataURL(f); await setImageFromURL('B', url); fitAll(); } });
-
-  document.getElementById('btnReset').addEventListener('click', ()=>{ state.A.x=state.A.y=state.B.x=state.B.y=state.O.x=state.O.y=0; state.A.zoom=state.B.zoom=state.O.zoom=1; draw(); });
-
-  // Exportar (modo overlay)
-  document.getElementById('btnExport').addEventListener('click', ()=>{
-    if(state.mode!=='overlay'){ alert('Cambia a "Capa sobre capa" para exportar la mezcla.'); return; }
-    const data = cvsO.toDataURL('image/png');
-    const a = document.createElement('a'); a.href=data; a.download='comparador-lunar.png'; a.click();
-  });
-
-  // Ayuda
-  document.getElementById('btnHelp').addEventListener('click', ()=>{
-    alert('🛰️ Consejos rápidos:\n\n• Usa los presets para probar comparativas oficiales de la NASA.\n• Alt + mover el ratón activa la lupa.\n• Activa “Diferencias (A vs B)” para un mapa de cambios.\n• En overlay, mueve el deslizador para cortar A/B y prueba distintos blend modes.\n• Si las funciones de análisis no aparecen, puede ser por CORS; carga las imágenes desde tu equipo.');
-  });
-
-  // ============= Carga y caches de análisis =============
-  async function setImageFromURL(key, url){
-    const img = await loadImage(url);
-    state[key].img = img; state[key].edges = null; state[key].edgesReady=false; state[key].tainted=false;
-    // Intento de leer 1 píxel para comprobar CORS
-    const test = document.createElement('canvas'); test.width=img.naturalWidth; test.height=img.naturalHeight; const tctx=test.getContext('2d'); tctx.drawImage(img,0,0);
-    try{ tctx.getImageData(0,0,1,1); }catch(e){ state[key].tainted=true; }
-    prepareAnalysisCaches();
-    draw();
-  }
-
-  async function loadPair(urlA, urlB){ await setImageFromURL('A', urlA); await setImageFromURL('B', urlB); }
-
-  function fitView(view, canvas){
-    if(!view.img) return;
-    const cw = canvas.clientWidth, ch = canvas.clientHeight;
-    const iw = view.img.naturalWidth, ih = view.img.naturalHeight;
-    const s = Math.min(cw/iw, ch/ih);
-    view.zoom = s; view.x = 0; view.y = 0;
-  }
-
-  function fitAll(){
-    if(state.mode==='side'){ fitView(state.A, cvsA); fitView(state.B, cvsB); }
-    else { if(state.A.img){ const cw=cvsO.clientWidth, ch=cvsO.clientHeight; const s = Math.min(cw/state.A.img.naturalWidth, ch/state.A.img.naturalHeight); state.O.zoom=s; state.O.x=state.O.y=0; } }
-    draw();
-  }
-
-  // Preparar caches de bordes/diferencias escalados al canvas para overlay rápido
-  function prepareAnalysisCaches(){
-    // Redibuja A y B en canvases temporales del tamaño del canvas overlay para poder hacer Sobel y Diff a resolución de vista.
-    if(!cvsO.clientWidth) return; // aún no escalado
-
-    // A
-    if(state.A.img){
-      const tempA = document.createElement('canvas'); tempA.width=cvsO.width; tempA.height=cvsO.height; const tctxA=tempA.getContext('2d');
-      // emula transform de overlay actual
-      const cw = cvsO.clientWidth, ch = cvsO.clientHeight; tctxA.setTransform(1,0,0,1,0,0); tctxA.clearRect(0,0,tempA.width,tempA.height);
-      tctxA.translate(cw/2 + state.O.x, ch/2 + state.O.y); tctxA.scale(state.O.zoom, state.O.zoom);
-      tctxA.drawImage(state.A.img, -state.A.img.naturalWidth/2, -state.A.img.naturalHeight/2);
-      state.A.edgesCacheOverlay = state.A.tainted? null : sobelFromCanvas(tempA, state.edgesStrength);
-      state._tempA = tempA;
-    }
-    // B
-    if(state.B.img){
-      const tempB = document.createElement('canvas'); tempB.width=cvsO.width; tempB.height=cvsO.height; const tctxB=tempB.getContext('2d');
-      const cw = cvsO.clientWidth, ch = cvsO.clientHeight; tctxB.setTransform(1,0,0,1,0,0); tctxB.clearRect(0,0,tempB.width,tempB.height);
-      tctxB.translate(cw/2 + state.O.x, ch/2 + state.O.y); tctxB.scale(state.O.zoom, state.O.zoom);
-      tctxB.drawImage(state.B.img, -state.B.img.naturalWidth/2, -state.B.img.naturalHeight/2);
-      state.B.edgesCacheOverlay = state.B.tainted? null : sobelFromCanvas(tempB, state.edgesStrength);
-      state._tempB = tempB;
+      state.A.edgesCache = null; state.B.edgesCache = null;
     }
 
-    // Diff heatmap
-    if(state.A.img && state.B.img && !state.A.tainted && !state.B.tainted){
-      state.O.diff = differenceHeatmapCanvas(state._tempA, state._tempB, state.diffThreshold, state.diffGain);
+    // diff
+    if(state.diffOn && state.A.lastSnapshot && state.B.lastSnapshot && !state.A.tainted && !state.B.tainted) {
+      computeDiff(state.A.lastSnapshot, state.B.lastSnapshot, state.diffThreshold, state.diffGain).then(r=>{ state.O.diff = r; draw(); });
     } else {
       state.O.diff = null;
     }
   }
 
-  // Recalcular caches cuando cambian parámetros relevantes
-  ['edgesStrength','gamma','diffThreshold','diffGain'].forEach(id=>{
-    document.getElementById(id).addEventListener('input', ()=>{ prepareAnalysisCaches(); draw(); });
-  });
-
-  // ============= Inicialización =============
-  function init(){
-    resizeAll();
-    attachNavHandlers(vpA, cvsA, 'A');
-    attachNavHandlers(vpB, cvsB, 'B');
-    attachNavHandlers(vpO, cvsO, 'O');
-    // Muestra un par por defecto para que haya algo al cargar
-    loadPair(NASA.full2025, NASA.full2016).then(()=>{ fitAll(); });
-
-    // Mover slider con drag directo sobre el overlay
-    vpO.addEventListener('pointerdown', (e)=>{ if(state.mode!=='overlay') return; const rect = vpO.getBoundingClientRect(); const x = (e.clientX - rect.left)/rect.width; state.wipe = clamp(x,0,1); draw(); document.getElementById('wipe').value=state.wipe; });
-    vpO.addEventListener('pointermove', (e)=>{ if(!e.buttons) return; if(state.mode!=='overlay') return; const rect = vpO.getBoundingClientRect(); const x = (e.clientX - rect.left)/rect.width; state.wipe = clamp(x,0,1); draw(); document.getElementById('wipe').value=state.wipe; });
-
-    // Observa cambios de tamaño del contenedor overlay para recachear
-    const ro = new ResizeObserver(()=>{ prepareAnalysisCaches(); draw(); }); ro.observe(vpO);
+  // ---------- resize helpers ----------
+  function resizeAll() {
+    // resize OSD containers by calling viewport container size recalculation
+    ['A','B'].forEach(k=>{
+      const entry = state[k];
+      if(entry && entry.viewer) {
+        try { entry.viewer.forceRedraw(); } catch(e) { /* ignore */ }
+      }
+    });
+    resizeOverlayCanvas();
+    prepareAnalysisCaches();
+    draw();
   }
 
-  init();
+  function resizeOverlayCanvas() {
+    const cvs = $('canvasOverlay');
+    const container = $('overlayContainer');
+    if(!cvs || !container) return;
+    const dpr = Math.max(1, window.devicePixelRatio || 1);
+    const w = Math.floor(container.clientWidth);
+    const h = Math.floor(container.clientHeight);
+    cvs.style.width = w + 'px';
+    cvs.style.height = h + 'px';
+    cvs.width = Math.floor(w * dpr);
+    cvs.height = Math.floor(h * dpr);
+    const ctx = cvs.getContext('2d');
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+  }
+
+  // ---------- draw: render either side-by-side or overlay ----------
+  function draw() {
+    if(state.mode === 'side') {
+      // side mode: OpenSeadragon viewers handle drawing
+      $('modeSide').style.display = 'grid';
+      $('modeOverlay').style.display = 'none';
+      // optionally draw overlays on top of OSD via custom overlays (grid lines etc)
+      // update zoom readout from viewer A if available
+      if(state.A.viewer) {
+        const zoom = Math.round(state.A.viewer.viewport.getZoom()*100);
+        $('zoomReadout').textContent = zoom + '%';
+      }
+    } else {
+      // overlay mode: draw into canvasOverlay
+      $('modeSide').style.display = 'none';
+      $('modeOverlay').style.display = 'block';
+      renderOverlayCanvas();
+      if($('zoomReadout')) $('zoomReadout').textContent = Math.round(state.O.zoom*100) + '%';
+    }
+  }
+
+  // ---------- renderOverlayCanvas: compose A and B snapshots, edges and diff ----------
+  function renderOverlayCanvas(){
+    const cvs = $('canvasOverlay'); if(!cvs) return;
+    const ctx = cvs.getContext('2d');
+    const w = cvs.clientWidth, h = cvs.clientHeight;
+    ctx.save();
+    // clear
+    ctx.setTransform(1,0,0,1,0,0);
+    ctx.clearRect(0,0,cvs.width,cvs.height);
+    ctx.setTransform(Math.max(1, window.devicePixelRatio || 1),0,0,Math.max(1, window.devicePixelRatio || 1),0,0);
+
+    // apply brightness/contrast filters for base render
+    ctx.filter = `brightness(${state.brightness}) contrast(${state.contrast})`;
+    // draw A
+    if(state.A.lastSnapshot) {
+      try {
+        ctx.drawImage(state.A.lastSnapshot, 0, 0, w, h);
+      } catch(e){ /* taint or error */ }
+    }
+
+    // blend B with composite and alpha
+    ctx.globalCompositeOperation = state.blendMode || 'source-over';
+    ctx.globalAlpha = state.overlayAlpha;
+    const cut = Math.floor(state.wipe * w);
+
+    // clip to right side (B visible region) via screen coords
+    ctx.save();
+    ctx.beginPath(); ctx.rect(cut, 0, w-cut, h); ctx.clip();
+    if(state.B.lastSnapshot) {
+      try { ctx.drawImage(state.B.lastSnapshot, 0, 0, w, h); } catch(e) { /* taint */ }
+    }
+    ctx.restore();
+
+    // reset composite
+    ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+
+    // draw edges overlays if enabled
+    if(state.edgesOn) {
+      ctx.save();
+      ctx.globalAlpha = state.edgesAlpha;
+      if(state.A.edgesCache) { try { ctx.drawImage(state.A.edgesCache, 0, 0, cut, h, 0,0, cut, h); } catch(e){} }
+      if(state.B.edgesCache) { try { ctx.drawImage(state.B.edgesCache, 0,0, w-cut, h, cut,0, w-cut, h); } catch(e){} }
+      ctx.restore();
+    }
+
+    // draw diff heatmap on top
+    if(state.diffOn && state.O.diff) {
+      ctx.save();
+      ctx.globalAlpha = 0.75;
+      try { ctx.drawImage(state.O.diff, 0, 0, w, h); } catch(e) {}
+      ctx.restore();
+    }
+
+    // draw wipe handle
+    const handle = $('wipeHandle');
+    if(handle) {
+      handle.style.left = (state.wipe*100)+'%';
+      // ensure visible
+      handle.style.display = 'block';
+    }
+
+    // optional grid
+    if(state.grid) {
+      ctx.save();
+      ctx.strokeStyle = 'rgba(148,163,184,0.08)'; ctx.lineWidth = 1;
+      const step = Math.round(Math.max(40, w/10));
+      for(let x=0; x<=w; x+=step){ ctx.beginPath(); ctx.moveTo(x+0.5,0); ctx.lineTo(x+0.5,h); ctx.stroke(); }
+      for(let y=0; y<=h; y+=step){ ctx.beginPath(); ctx.moveTo(0,y+0.5); ctx.lineTo(w,y+0.5); ctx.stroke(); }
+      ctx.restore();
+    }
+
+    // done
+    ctx.restore();
+  }
+
+  // ---------- export overlay as PNG ----------
+  function exportOverlayPNG() {
+    if(state.mode !== 'overlay') { alert('Cambia a "Capa sobre capa" para exportar.'); return; }
+    const cvs = $('canvasOverlay');
+    if(!cvs) { alert('No hay canvas overlay'); return; }
+    // toDataURL may throw if canvas is tainted by cross-origin images. Handle gracefully.
+    try {
+      const data = cvs.toDataURL('image/png');
+      const a = document.createElement('a'); a.href = data; a.download = 'spacevision-overlay.png'; a.click();
+    } catch(e){
+      alert('Export falló (posible CORS/tainted canvas). Para exportar, usa imágenes locales o servidor con CORS habilitado.');
+    }
+  }
+
+  // ---------- Fit / reset functions ----------
+  function fitAll(){
+    // If OSD viewers exist, fit image(s) to their containers
+    ['A','B'].forEach(k=>{
+      const entry = state[k];
+      if(entry && entry.viewer) {
+        try { entry.viewer.viewport.goHome(true); } catch(e){ /* ignore */ }
+      }
+    });
+    // overlay: fit to overlay if images present
+    prepareAnalysisCaches(); draw();
+  }
+
+  // ---------- Event handlers for OSD viewers (pan/zoom sync, tile count) ----------
+  function wireViewerEvents(which) {
+    const entry = state[which];
+    if(!entry || !entry.viewer) return;
+    const viewer = entry.viewer;
+
+    function updateTileLoading(count) {
+      const el = which === 'A' ? $('loadA') : $('loadB');
+      if(!el) return;
+      el.style.display = count>0 ? 'block' : 'none';
+      el.textContent = which + ': ' + count + ' tiles';
+      entry.loadingTiles = count;
+    }
+
+    // OSD doesn't fire a "tileloadcount" event by default; we can use tile-loaded handlers at tileSource or monitor network.
+    // Here we approximate by tracking tile requests via tileSource (not always available).
+    // For now, we set up viewport-change handlers to prepare caches lazily.
+    viewer.addHandler('animation', (ev)=> {
+      // while panning/zooming, keep overlay updated if in overlay mode
+      if(state.mode === 'overlay') {
+        // optional: show "loading..." while animating
+        updateTileLoading(1);
+      }
+      if(state.sync) {
+        // sync other viewer's viewport if present
+        const otherKey = which === 'A' ? 'B' : 'A';
+        if(state[otherKey] && state[otherKey].viewer && state[otherKey].viewer !== viewer) {
+          try {
+            // we copy center and zoom
+            const center = viewer.viewport.getCenter();
+            const zoom = viewer.viewport.getZoom();
+            state[otherKey].viewer.viewport.panTo(center, true);
+            state[otherKey].viewer.viewport.zoomTo(zoom, true);
+          } catch(e){ /* ignore */ }
+        }
+      }
+    });
+
+    // fired after animation finished
+    viewer.addHandler('animation-finish', (ev)=>{
+      // stop loading indicator
+      updateTileLoading(0);
+      // prepare analysis caches when user stops interacting
+      prepareAnalysisCaches();
+    });
+
+    // tile-drawn events to count tile operations (OSD exposes tile-drawn in TiledImage)
+    viewer.addHandler('open', (ev)=>{
+      // mark label
+      (which === 'A' ? $('labelA') : $('labelB')).textContent = '(conectado)';
+      // when open, prepare caches
+      setTimeout(()=>{ prepareAnalysisCaches(); draw(); }, 400);
+    });
+
+    // pointer events for loupe
+    const container = viewer.container;
+    container.addEventListener('mousemove', (ev)=>{
+      if(!state.loupe || !ev.altKey) { hideLoupe(which); return; }
+      showLoupe(which, ev);
+    });
+    container.addEventListener('mouseleave', ()=>{ hideLoupe(which); });
+  }
+
+  // ---------- Loupe (mini-zoom) ----------
+  function showLoupe(which, ev) {
+    const loupe = which==='A' ? $('loupeA') : which==='B' ? $('loupeB') : $('loupeO');
+    if(!loupe) return;
+    const container = which==='A' ? state.A.viewer.container : which==='B' ? state.B.viewer.container : $('overlayContainer');
+    const rect = container.getBoundingClientRect();
+    const lx = ev.clientX - rect.left - 90;
+    const ly = ev.clientY - rect.top - 90;
+    loupe.style.left = lx + 'px'; loupe.style.top = ly + 'px'; loupe.style.display = 'block';
+    // build content: snapshot the viewer small region around pointer
+    // We will try to copy from viewer.drawer.canvas if available
+    try {
+      const viewer = which==='A' ? state.A.viewer : state.B.viewer;
+      const drawerCanvas = viewer && viewer.drawer && (viewer.drawer.canvas || (viewer.drawer.context && viewer.drawer.context.canvas));
+      const out = document.createElement('canvas'); out.width = 180; out.height = 180;
+      const octx = out.getContext('2d');
+      if(drawerCanvas) {
+        // compute region near pointer
+        const sx = Math.max(0, ev.offsetX - 40);
+        const sy = Math.max(0, ev.offsetY - 40);
+        octx.drawImage(drawerCanvas, sx, sy, 80, 80, 0, 0, 180, 180);
+      } else {
+        // fallback: draw lastSnapshot small
+        const snap = state[which].lastSnapshot;
+        if(snap) {
+          const sx = Math.max(0, ev.offsetX - 40);
+          const sy = Math.max(0, ev.offsetY - 40);
+          octx.drawImage(snap, sx, sy, 80, 80, 0, 0, 180, 180);
+        }
+      }
+      loupe.style.background = `url(${out.toDataURL()}) center/cover no-repeat`;
+    } catch(e){ /* ignore */ }
+  }
+  function hideLoupe(which) { const loupe = which==='A' ? $('loupeA') : which==='B' ? $('loupeB') : $('loupeO'); if(loupe) loupe.style.display = 'none'; }
+
+  // ---------- Overlay wipe handle drag ----------
+  (function wireWipeDrag(){
+    let dragging = false;
+    const handle = $('wipeHandle');
+    const container = $('overlayContainer');
+    if(!handle || !container) return;
+    container.addEventListener('pointerdown', (ev)=>{
+      dragging = true; ev.preventDefault();
+      const rect = container.getBoundingClientRect();
+      const x = (ev.clientX - rect.left) / rect.width;
+      state.wipe = clamp(x, 0, 1);
+      $('wipe').value = state.wipe;
+      prepareAnalysisCaches(); draw();
+    });
+    container.addEventListener('pointermove', (ev)=>{
+      if(!dragging) return;
+      const rect = container.getBoundingClientRect();
+      const x = (ev.clientX - rect.left) / rect.width;
+      state.wipe = clamp(x, 0, 1);
+      $('wipe').value = state.wipe;
+      prepareAnalysisCaches(); draw();
+    });
+    window.addEventListener('pointerup', ()=>{ dragging=false; });
+  })();
+
+  // ---------- Initialización ----------
+  function init() {
+    // create OpenSeadragon viewers for A and B
+    state.A.viewer = createOSDViewer('viewerA', { id: 'viewerA', showNavigator:true });
+    state.B.viewer = createOSDViewer('viewerB', { id: 'viewerB', showNavigator:true });
+
+    // attach OSD events
+    wireViewerEvents('A');
+    wireViewerEvents('B');
+
+    // wire UI controls
+    wireControls();
+
+    // preset load example
+    // loadPair(NASA.full2025, NASA.full2016).then(()=>fitAll()).catch(()=>{});
+
+    // resize observers
+    window.addEventListener('resize', ()=>{ resizeAll(); });
+
+    // initial UI toggles default
+    setToggle('toggleSync', true);
+    setToggle('toggleGrid', false);
+    setToggle('toggleLoupe', true);
+    setToggle('toggleEdges', false);
+    setToggle('toggleDiff', false);
+
+    // handle simple open from presets if user sets URLs in inputs and clicks Load
+
+    // clicking canvas overlay to move wipe
+    const ov = $('overlayContainer');
+    if(ov) {
+      ov.addEventListener('click', (ev)=>{
+        const rect = ov.getBoundingClientRect();
+        const x = (ev.clientX - rect.left) / rect.width;
+        state.wipe = clamp(x, 0, 1);
+        $('wipe').value = state.wipe;
+        draw();
+      });
+    }
+
+    // initial draw
+    resizeAll();
+    draw();
+  }
+
+  // ---------- Helper load pair ----------
+  async function loadPair(urlA, urlB) {
+    try {
+      if(urlA) await setImageFromURL('A', urlA);
+      if(urlB) await setImageFromURL('B', urlB);
+    } catch(e){ console.warn('loadPair error', e); throw e; }
+  }
+
+  // ---------- Small utilities ----------
+  function $(id){ return document.getElementById(id); } // re-declare for scope
+
+  // ---------- Run init on DOM ready ----------
+  document.addEventListener('DOMContentLoaded', ()=>{ init(); });
+
+  // ======================================================================
+  // Additional notes and "hooks" for extension:
+  // - Puedes añadir una ruta Flask que entregue info.json IIIF si quieres controlar CORS.
+  // - Para análisis más robusto, implementa un endpoint backend que haga el diff con OpenCV y devuelva un PNG (evitará problemas CORS).
+  // - Si deseas integrar OpenSeadragon plugins (por ejemplo, openseadragon-annotations), puedes incluirlos y conectar las anotaciones con tu API.
+  // ======================================================================
 
   </script>
 
-  <!-- ===== Comentarios / Fuentes =====
-    Imágenes por defecto (todas NASA/GSFC/SVS, LRO/LROC/LOLA):
-      - Moon Mosaic (LRO NAC 2018) JPG: https://svs.gsfc.nasa.gov/5001  (descarga directa: /vis/a000000/a005000/a005001/moon_mosaic_print.jpg)
-      - Moon Phase and Libration 2025 (Full Moon) JPG: https://svs.gsfc.nasa.gov/5415  (descarga directa: /vis/a000000/a005000/a005048/phase_full.1571_print.jpg)
-      - Moon Phase and Libration 2016 (Full Moon) JPG: https://svs.gsfc.nasa.gov/4404  (descarga directa: /vis/a000000/a004200/a004236/phase_full.0815_preview.jpg)
-      - Hyperwall: Tycho Central Peak (oblicua & cenital) JPGs: https://svs.gsfc.nasa.gov/4220  (descargas: /a004220/tycho_central_peak_wide_print.jpg y /tycho_central_peak_nadir_print.jpg)
-    Uso y crédito: Las imágenes de SVS son de dominio público pero requieren atribución a NASA/GSFC/SVS y equipos LRO/LROC/LOLA cuando proceda.
+  <!-- Comentarios finales (fuentes / crédito) -->
+  <!--
+    Este archivo proporciona:
+      - Viewer tileado (OpenSeadragon)
+      - Snapshot de viewport para análisis cuando es posible
+      - WebWorker para Sobel y mapa de diferencias (no bloquea UI)
+      - Export de overlay (si canvas no está tainted por CORS)
+      - Muchas funciones documentadas y puntos de extensión.
+
+    Recomendaciones prácticas:
+      - Si el servidor de tiles no permite CORS, monta un proxy reverse (o añade CORS) o carga las imágenes desde tu máquina al probar.
+      - Para comparar gigapíxeles con análisis científico usa backend con OpenCV para obtener resultados 100% reproducibles.
+
+    Puedes pedirme que:
+      - Genere un ejemplo `app.py` y `requirements.txt` para servir este template con Flask.
+      - Añada integración con OpenCV en backend para diffs sin limitaciones CORS.
+      - Reemplace la lógica de snapshot por OpenSeadragon tile composition más exacta usando `tileSource.getTileUrl` y metadata `width/height` si me das los info.json o .dzi.
   -->
+
 </body>
 </html>
